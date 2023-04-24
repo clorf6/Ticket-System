@@ -511,18 +511,19 @@ public:
         now.count += nex.count + 1;
     }
 
-    void MergeInter(InterNode<U, T> &now, InterNode<U, T> &nex, InterNode<U, T> &fa, int k, const Element<U, T> &x, const Element<U, T> &x_suc) {
+    void MergeInter(InterNode<U, T> &now, InterNode<U, T> &nex, InterNode<U, T> &fa, int k, const Element<U, T> &x, const Element<U, T> &x_suc, bool &flag) {
         int Count = now.count + 1;
         MergeInterKey(now, nex, fa.key[k]);
         MergeChild(now, nex, Count);
         if (now.key[Count - 1] == x) {
+            flag = true;
             now.key[Count - 1] = x_suc;
         }
         WriteInterNode(now.pos, now);
         MergeFa(fa, k);
     }
 
-    void MergeRoot(const Element<U, T> &x, const Element<U, T> &x_suc) {
+    void MergeRoot(const Element<U, T> &x, const Element<U, T> &x_suc, bool &flag) {
         if (!root_leaf) {
             if (!Inter_root.child_leaf[0]) {
                 ReadInterNode(Inter_root.child[0], Inter_now);
@@ -531,6 +532,7 @@ public:
                 MergeInterKey(Inter_now, Inter_nex, Inter_root.key[0]);
                 MergeChild(Inter_now, Inter_nex, Count);
                 if (Inter_now.key[Count - 1] == x) {
+                    flag = true;
                     Inter_now.key[Count - 1] = x_suc;
                 }
                 Inter_root = Inter_now;
@@ -549,7 +551,7 @@ public:
         }
     }
 
-    bool EraseKey(LeafNode<U, T> &now, const Element<U, T> &x, Element<U, T> &suc) {
+    bool EraseKey(LeafNode<U, T> &now, const Element<U, T> &x, Element<U, T> &suc, bool &flag) {
         int pos = now.LowerBound(x);
         if (pos >= now.count || now.key[pos] != x) {
             return false;
@@ -572,6 +574,7 @@ public:
                 if (Inter_fa.key[k] == x) {
                     if (now.count) {
                         Inter_fa.key[k] = now.key[0];
+                        flag = true;
                         WriteInterNode(now.fa, Inter_fa);
                         if (now.fa == root_pos) {
                             Inter_root = Inter_fa;
@@ -630,7 +633,8 @@ public:
         ReadLeafNode(Leaf_pos, Leaf_nex);
         ReadInterNode(Leaf_nex.fa, Inter_fa);
         int k = Inter_fa.UpperBound(Leaf_nex.key[0]);
-        bool ret = EraseKey(Leaf_nex, x, x_suc);
+        bool flag = false;
+        bool ret = EraseKey(Leaf_nex, x, x_suc, flag);
         if (!ret) return ;
         if (k > 0 && (~Inter_fa.child[k - 1])) {
             ReadLeafNode(Inter_fa.child[k - 1], Leaf_now);
@@ -646,7 +650,7 @@ public:
 //        printf("---3 debug---\n");
         if ((!Leaf_now.count) || (!Leaf_nex.count) || Leaf_now.count + Leaf_nex.count <= kMinBlockSize) {
             if (Inter_fa.pos == root_pos && Inter_root.count == 1) {
-                MergeRoot(x, x_suc);
+                MergeRoot(x, x_suc, flag);
                 return ;
             }
             Element<U, T> now_x = Inter_fa.key[0];
@@ -656,7 +660,7 @@ public:
             FindPre(Inter_now, Inter_nex, Inter_fa, k, now_x);
             while ((!Inter_now.count) || (!Inter_nex.count) || Inter_now.count + Inter_nex.count <= kMinBlockSize) {
                 if (Inter_fa.pos == root_pos && Inter_root.count == 1) {
-                    MergeRoot(x, x_suc);
+                    MergeRoot(x, x_suc, flag);
                     break ;
                 }
                 now_x = Inter_fa.key[0];
@@ -665,12 +669,13 @@ public:
 //                printf("---2 debug---\n");
 //                print(Inter_nex);
 //                printf("---3 debug---\n");
-                MergeInter(Inter_now, Inter_nex, Inter_fa, k, x, x_suc);
+                MergeInter(Inter_now, Inter_nex, Inter_fa, k, x, x_suc, flag);
                 if (Inter_fa.pos == root_pos) break ;
                 Inter_nex = Inter_fa;
                 FindPre(Inter_now, Inter_nex, Inter_fa, k, now_x);
             }
         }
+        if(flag) return ;
         ChangeSuc(x, x_suc);
         return ;
     }
