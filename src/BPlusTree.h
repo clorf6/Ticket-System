@@ -13,8 +13,8 @@
 #include "Exception.h"
 #include "_string.h"
 
-const int kMaxBlockSize = 50;
-const int kMinBlockSize = 15;
+const int kMaxBlockSize = 4;
+const int kMinBlockSize = 2;
 
 template<class U, class T>
 class Element {
@@ -438,9 +438,16 @@ public:
         int Leaf_pos = Find(x);
         ReadLeafNode(Leaf_pos, Leaf_now);
         InsertKey(Leaf_now, x);
+//        printf("---1 debug---\n");
+//        printLeaf(Leaf_now);
+//        printf("---2 debug---\n");
+//        printLeaf(Leaf_nex);
         if (Leaf_now.count >= kMaxBlockSize) {
             SplitLeaf(Leaf_now);
             ReadInterNode(Leaf_now.fa, Inter_now);
+//            printf("---1 debug---\n");
+//            printInter(Inter_now);
+//            printf("---2 debug---\n");
             while (Inter_now.count >= kMaxBlockSize) {
                 if (Inter_now.pos == root_pos) {
                     SplitRoot();
@@ -623,6 +630,80 @@ public:
         }
     }
 
+    void BorrowLeafPre(LeafNode<U, T> &now, LeafNode<U, T> &nex, InterNode<U, T>& fa, int k) {
+        now.key[now.count++] = nex.key[0];
+        for (int i = 0; i < nex.count; i++) nex.key[i] = nex.key[i + 1];
+        nex.count--;
+        fa.key[k] = nex.key[0];
+        WriteLeafNode(now.pos, now);
+        WriteLeafNode(nex.pos, nex);
+        WriteInterNode(fa.pos, fa);
+        if (fa.pos == root_pos) Inter_root = fa;
+    }
+
+    void BorrowLeafSuc(LeafNode<U, T> &now, LeafNode<U, T> &nex, InterNode<U, T>& fa, int k) {
+        for (int i = nex.count; i >= 1; i--) nex.key[i] = nex.key[i - 1];
+        nex.count++;
+        nex.key[0] = now.key[--now.count];
+        fa.key[k] = nex.key[0];
+        WriteLeafNode(now.pos, now);
+        WriteLeafNode(nex.pos, nex);
+        WriteInterNode(fa.pos, fa);
+        if (fa.pos == root_pos) Inter_root = fa;
+    }
+
+    void BorrowInterPre(InterNode<U, T> &now, InterNode<U, T> &nex, InterNode<U, T>& fa, int k) {
+        now.key[now.count++] = nex.key[0];
+        now.child[now.count] = nex.child[0];
+        now.child_leaf[now.count] = nex.child_leaf[0];
+        if (now.child_leaf[now.count]) {
+            ReadLeafNode(now.child[now.count], Leaf_child);
+            Leaf_child.fa = now.pos;
+            WriteLeafNode(now.child[now.count], Leaf_child);
+        } else {
+            ReadInterNode(now.child[now.count], Inter_child);
+            Inter_child.fa = now.pos;
+            WriteInterNode(now.child[now.count], Inter_child);
+        }
+        for (int i = 0; i < nex.count; i++) nex.key[i] = nex.key[i + 1];
+        for (int i = 0; i <= nex.count; i++) {
+            nex.child[i] = nex.child[i + 1];
+            nex.child_leaf[i] = nex.child_leaf[i + 1];
+        }
+        nex.count--;
+        std::swap(fa.key[k], now.key[now.count - 1]);
+        WriteInterNode(now.pos, now);
+        WriteInterNode(nex.pos, nex);
+        WriteInterNode(fa.pos, fa);
+        if (fa.pos == root_pos) Inter_root = fa;
+    }
+
+    void BorrowInterSuc(InterNode<U, T> &now, InterNode<U, T> &nex, InterNode<U, T>& fa, int k) {
+        for (int i = nex.count; i >= 1; i--) nex.key[i] = nex.key[i - 1];
+        for (int i = nex.count + 1; i >= 1; i--) {
+            nex.child[i] = nex.child[i - 1];
+            nex.child_leaf[i] = nex.child_leaf[i - 1];
+        }
+        nex.count++;
+        nex.child[0] = now.child[now.count];
+        nex.child_leaf[0] = now.child_leaf[now.count];
+        if (now.child_leaf[now.count]) {
+            ReadLeafNode(now.child[now.count], Leaf_child);
+            Leaf_child.fa = nex.pos;
+            WriteLeafNode(now.child[now.count], Leaf_child);
+        } else {
+            ReadInterNode(now.child[now.count], Inter_child);
+            Inter_child.fa = nex.pos;
+            WriteInterNode(now.child[now.count], Inter_child);
+        }
+        nex.key[0] = now.key[--now.count];
+        std::swap(fa.key[k], nex.key[0]);
+        WriteInterNode(now.pos, now);
+        WriteInterNode(nex.pos, nex);
+        WriteInterNode(fa.pos, fa);
+        if (fa.pos == root_pos) Inter_root = fa;
+    }
+
     void Erase(const Element<U, T> &x) {
         Element<U, T> x_suc;
         bool flag = false;
@@ -648,7 +729,13 @@ public:
 //        printf("---2 debug---\n");
 //        printLeaf(Leaf_nex);
 //        printf("---3 debug---\n");
-        if ((!Leaf_now.count) || (!Leaf_nex.count) || Leaf_now.count + Leaf_nex.count <= kMinBlockSize) {
+//        printInter(Inter_fa);
+//        printf("---4 debug---\n");
+        if (Leaf_now.count <= kMinBlockSize && Leaf_nex.count > kMinBlockSize) {
+            BorrowLeafPre(Leaf_now, Leaf_nex, Inter_fa, k);
+        } else if (Leaf_now.count > kMinBlockSize && Leaf_nex.count <= kMinBlockSize) {
+            BorrowLeafSuc(Leaf_now, Leaf_nex, Inter_fa, k);
+        } else if (Leaf_now.count <= kMinBlockSize && Leaf_nex.count <= kMinBlockSize) {
             if (Inter_fa.pos == root_pos && Inter_root.count == 1) {
                 MergeRoot(x, x_suc, flag);
                 return ;
@@ -658,18 +745,21 @@ public:
             if (Inter_fa.pos == root_pos) return ;
             Inter_nex = Inter_fa;
             FindPre(Inter_now, Inter_nex, Inter_fa, k, now_x);
-            while ((!Inter_now.count) || (!Inter_nex.count) || Inter_now.count + Inter_nex.count <= kMinBlockSize) {
-                if (Inter_fa.pos == root_pos && Inter_root.count == 1) {
-                    MergeRoot(x, x_suc, flag);
-                    break ;
-                }
+            while (1) {
                 now_x = Inter_fa.key[0];
-//                printf("---1 debug---\n");
-//                print(Inter_now);
-//                printf("---2 debug---\n");
-//                print(Inter_nex);
-//                printf("---3 debug---\n");
-                MergeInter(Inter_now, Inter_nex, Inter_fa, k, x, x_suc, flag);
+                if (Inter_now.count <= kMinBlockSize && Inter_nex.count > kMinBlockSize) {
+                    BorrowInterPre(Inter_now, Inter_nex, Inter_fa, k);
+                    break;
+                } else if (Inter_now.count > kMinBlockSize && Inter_nex.count <= kMinBlockSize) {
+                    BorrowInterSuc(Inter_now, Inter_nex, Inter_fa, k);
+                    break;
+                } else if (Inter_now.count <= kMinBlockSize && Inter_nex.count <= kMinBlockSize) {
+                    if (Inter_fa.pos == root_pos && Inter_root.count == 1) {
+                        MergeRoot(x, x_suc, flag);
+                        break ;
+                    }
+                    MergeInter(Inter_now, Inter_nex, Inter_fa, k, x, x_suc, flag);
+                } else break;
                 if (Inter_fa.pos == root_pos) break ;
                 Inter_nex = Inter_fa;
                 FindPre(Inter_now, Inter_nex, Inter_fa, k, now_x);
