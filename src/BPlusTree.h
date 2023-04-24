@@ -625,15 +625,15 @@ public:
 
     void Erase(const Element<U, T> &x) {
         Element<U, T> x_suc;
+        bool flag = false;
         if (root_leaf) {
-            EraseKey(Leaf_root, x, x_suc);
+            EraseKey(Leaf_root, x, x_suc, flag);
             return ;
         }
         int Leaf_pos = Find(x);
         ReadLeafNode(Leaf_pos, Leaf_nex);
         ReadInterNode(Leaf_nex.fa, Inter_fa);
         int k = Inter_fa.UpperBound(Leaf_nex.key[0]);
-        bool flag = false;
         bool ret = EraseKey(Leaf_nex, x, x_suc, flag);
         if (!ret) return ;
         if (k > 0 && (~Inter_fa.child[k - 1])) {
