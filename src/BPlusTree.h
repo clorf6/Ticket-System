@@ -171,9 +171,29 @@ public:
     const int kLeafNodeSize = sizeof(LeafNode<U, T>);
     const int kSizeofElement = sizeof(Element<U, T>);
     const int HeaderSize = sizeof(int) + sizeof(bool);
-    static const int kCacheCapacity = 300;
+    static const int kCacheCapacity = 3000;
     InterNode<U, T> Inter_now, Inter_nex, Inter_child, Inter_fa;
     LeafNode<U, T> Leaf_now, Leaf_nex, Leaf_child, Leaf_nex_nex;
+
+    void ReadInterNode(int pos, InterNode<U, T> &ret) {
+        Inter_data.seekg(HeaderSize + (pos - 1) * kInterNodeSize);
+        Inter_data.read(reinterpret_cast<char *>(&ret), kInterNodeSize);
+    }
+
+    void ReadLeafNode(int pos, LeafNode<U, T> &ret) {
+        Leaf_data.seekg((pos - 1) * kLeafNodeSize);
+        Leaf_data.read(reinterpret_cast<char *>(&ret), kLeafNodeSize);
+    }
+
+    void WriteInterNode(int pos, InterNode<U, T> &ret) {
+        Inter_data.seekp(HeaderSize + (pos - 1) * kInterNodeSize);
+        Inter_data.write(reinterpret_cast<char *>(&ret), kInterNodeSize);
+    }
+
+    void WriteLeafNode(int pos, LeafNode<U, T> &ret) {
+        Leaf_data.seekp((pos - 1) * kLeafNodeSize);
+        Leaf_data.write(reinterpret_cast<char *>(&ret), kLeafNodeSize);
+    }
 
     class LeafLRUCache {
         friend class BPlusTree;
@@ -328,26 +348,6 @@ public:
         Inter_data.write(reinterpret_cast<char *>(&root_leaf), sizeof(bool));
         Inter_data.close();
         Leaf_data.close();
-    }
-
-    void ReadInterNode(int pos, InterNode<U, T> &ret) {
-        Inter_data.seekg(HeaderSize + (pos - 1) * kInterNodeSize);
-        Inter_data.read(reinterpret_cast<char *>(&ret), kInterNodeSize);
-    }
-
-    void ReadLeafNode(int pos, LeafNode<U, T> &ret) {
-        Leaf_data.seekg((pos - 1) * kLeafNodeSize);
-        Leaf_data.read(reinterpret_cast<char *>(&ret), kLeafNodeSize);
-    }
-
-    void WriteInterNode(int pos, InterNode<U, T> &ret) {
-        Inter_data.seekp(HeaderSize + (pos - 1) * kInterNodeSize);
-        Inter_data.write(reinterpret_cast<char *>(&ret), kInterNodeSize);
-    }
-
-    void WriteLeafNode(int pos, LeafNode<U, T> &ret) {
-        Leaf_data.seekp((pos - 1) * kLeafNodeSize);
-        Leaf_data.write(reinterpret_cast<char *>(&ret), kLeafNodeSize);
     }
 
     int Find(const Element<U, T> &now) {
