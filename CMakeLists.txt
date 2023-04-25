@@ -8,5 +8,5 @@ add_compile_options(-fmax-errors=10 -O2 -DONLINE_JUDGE -lm -std=c++17)
 
 include_directories(src)
 
-add_executable(TicketSystem src/BPlusTree.cpp)
+add_executable(code src/BPlusTree.cpp)
 
