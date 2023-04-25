@@ -10,7 +10,7 @@
 #include <functional>
 #include "List.h"
 
-const size_t kMapSize = 1000;
+const size_t kMapSize = 3000;
 
 template<class Key, class T>
 class LinkedHashMap {
