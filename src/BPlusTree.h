@@ -15,8 +15,8 @@
 #include "List.h"
 #include "LinkedHashMap.h"
 
-const int kMaxBlockSize = 50;
-const int kMinBlockSize = 15;
+const int kMaxBlockSize = 100;
+const int kMinBlockSize = 35;
 
 template<class U, class T>
 class Element {
@@ -171,7 +171,7 @@ public:
     const int kLeafNodeSize = sizeof(LeafNode<U, T>);
     const int kSizeofElement = sizeof(Element<U, T>);
     const int HeaderSize = sizeof(int) + sizeof(bool);
-    static const int kCacheCapacity = 5000;
+    static const int kCacheCapacity = 300;
     InterNode<U, T> Inter_now, Inter_nex, Inter_child, Inter_fa;
     LeafNode<U, T> Leaf_now, Leaf_nex, Leaf_child, Leaf_nex_nex;
 
