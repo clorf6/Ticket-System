@@ -3,7 +3,7 @@
 
 #include "BPlusTree.h"
 
-BPlusTree<string, int> list("BPT");
+BPlusTree<string, int> bpt("BPT");
 int main() {
 //    try {
     int T;
@@ -15,19 +15,19 @@ int main() {
             std::string s;
             int data;
             std::cin >> s >> data;
-            list.Insert(Element<string, int>{data, s});
+            bpt.Insert(Element<string, int>{data, s});
         } else if (opt == "find") {
             std::string s;
             std::cin >> s;
-            list.Find(s);
+            bpt.Find(s);
             std::cout << '\n';
         } else if (opt == "delete") {
             std::string s;
             int data;
             std::cin >> s >> data;
-            list.Erase(Element<string, int>{data, s});
-        } else if (opt == "debug") list.debug();
-        //list.debug();
+            bpt.Erase(Element<string, int>{data, s});
+        } else if (opt == "debug") bpt.debug2();
+        //bpt.debug();
     }
 //    }
 //    catch (Exception &error) {

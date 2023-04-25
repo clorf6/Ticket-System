@@ -12,6 +12,8 @@
 #include <cstring>
 #include "Exception.h"
 #include "_string.h"
+#include "List.h"
+#include "LinkedHashMap.h"
 
 const int kMaxBlockSize = 4;
 const int kMinBlockSize = 2;
@@ -23,7 +25,11 @@ public:
     U index;
     Element() {}
 
-    Element(const T &Value, const std::string &Index = "") : value(Value), index(Index) {};
+    Element(T Value, U Index) : value(Value), index(Index) {};
+    Element(const Element<U, T>& other) {
+        value = other.value;
+        index = other.index;
+    }
 
     bool operator==(const Element &x) const {
         return index == x.index && value == x.value;
@@ -63,6 +69,11 @@ public:
         is_leaf = true;
         count = 0;
         fa = pos = -1;
+    }
+    Node<U, T>(const Node<U, T> &other) :
+            is_leaf(other.is_leaf), count(other.count),
+            fa(other.fa), pos(other.pos) {
+        for (int i = 0; i < count; i++) key[i] = other.key[i];
     }
     int UpperBound(const Element<U, T> &now) const {
         int l = 0, r = count - 1;
@@ -120,6 +131,13 @@ public:
             child_leaf[i] = true;
         }
     }
+    InterNode<U, T>(const InterNode<U, T> &other) :
+            Node<U, T>(other) {
+        for (int i = 0; i <= this->count; i++) {
+            child[i] = other.child[i];
+            child_leaf[i] = other.child_leaf[i];
+        }
+    };
 };
 
 template<class U, class T>
@@ -133,10 +151,13 @@ public:
         this->fa = this->pre = this->suc = -1;
         this->pos = Pos;
     }
+    LeafNode<U, T>(const LeafNode<U, T> &other) :
+            Node<U, T>(other), pre(other.pre), suc(other.suc) {};
 };
 
 template<class U, class T>
 class BPlusTree {
+    friend class LRUCache;
 public:
     LeafNode<U, T> Leaf_root;
     InterNode<U, T> Inter_root;
@@ -150,10 +171,125 @@ public:
     const int kLeafNodeSize = sizeof(LeafNode<U, T>);
     const int kSizeofElement = sizeof(Element<U, T>);
     const int HeaderSize = sizeof(int) + sizeof(bool);
+    static const int kCacheCapacity = 3000;
     InterNode<U, T> Inter_now, Inter_nex, Inter_child, Inter_fa;
     LeafNode<U, T> Leaf_now, Leaf_nex, Leaf_child, Leaf_nex_nex;
 
-    BPlusTree(const std::string &file_name) {
+    class LeafLRUCache {
+        friend class BPlusTree;
+    public:
+        BPlusTree<U, T>* BPT;
+        int capacity;
+        list<std::pair<int, LeafNode<U, T>>> cache;
+        LinkedHashMap<int, typename list<std::pair<int, LeafNode<U, T>>>::iterator> map;
+        LeafLRUCache(BPlusTree<U, T>* _BPT, const int& Capacity = kCacheCapacity) : BPT(_BPT), capacity(Capacity) {};
+
+        void debug() {
+            printf("LeafCache %d\n", cache.size());
+            typename list<std::pair<int, LeafNode<U, T>>>::iterator it = cache.front();
+            while (it != cache.end()) {
+                printf("first %d\n",(*it).first);
+                printLeaf((*it).second);
+                it++;
+            }
+        }
+
+        void dump() {
+            typename list<std::pair<int, LeafNode<U, T>>>::iterator it = cache.front();
+            std::pair<int, LeafNode<U, T>> now;
+            while (it != cache.end()) {
+                now = *it;
+                BPT->WriteLeafNode(now.first, now.second);
+                it++;
+            }
+        }
+
+        void get(int key, LeafNode<U, T>& now) {
+            if (!map.find(key)) {
+                BPT->ReadLeafNode(key, now);
+                put(key, now);
+                return ;
+            }
+            std::pair<int, LeafNode<U, T>> ret(*map[key]);
+            now = ret.second;
+            cache.erase(map[key]);
+            cache.push_front(std::make_pair(key, now));
+            map[key] = cache.front();
+        }
+
+        void put(int key, const LeafNode<U, T>& val) {
+            if (!map.find(key)) {
+                if (cache.size() == capacity) {
+                    std::pair<int, LeafNode<U, T>> now = cache.back();
+                    BPT->WriteLeafNode(now.first, now.second);
+                    map.erase(now.first);
+                    cache.pop_back();
+                }
+            } else cache.erase(map[key]);
+            cache.push_front(std::make_pair(key, val));
+            map[key] = cache.front();
+        }
+    };
+
+    class InterLRUCache {
+        friend class BPlusTree;
+    public:
+        BPlusTree<U, T>* BPT;
+        int capacity;
+        list<std::pair<int, InterNode<U, T>>> cache;
+        LinkedHashMap<int, typename list<std::pair<int, InterNode<U, T>>>::iterator> map;
+        InterLRUCache(BPlusTree<U, T>* _BPT, const int& Capacity = kCacheCapacity) : BPT(_BPT), capacity(Capacity) {};
+
+        void debug() {
+            printf("InterCache %d\n", cache.size());
+            typename list<std::pair<int, InterNode<U, T>>>::iterator it = cache.front();
+            while (it != cache.end()) {
+                printf("first %d\n",(*it).first);
+                printInter((*it).second);
+                it++;
+            }
+        }
+
+        void dump() {
+            typename list<std::pair<int, InterNode<U, T>>>::iterator it = cache.front();
+            std::pair<int, InterNode<U, T>> now;
+            while (it != cache.end()) {
+                now = *it;
+                BPT->WriteInterNode(now.first, now.second);
+                it++;
+            }
+        }
+
+        void get(int key, InterNode<U, T>& now) {
+            if (!map.find(key)) {
+                BPT->ReadInterNode(key, now);
+                put(key, now);
+                return ;
+            }
+            now = (*map[key]).second;
+            cache.erase(map[key]);
+            cache.push_front(std::make_pair(key, now));
+            map[key] = cache.front();
+        }
+
+        void put(int key, const InterNode<U, T>& val) {
+            if (!map.find(key)) {
+                if (cache.size() == capacity) {
+                    std::pair<int, InterNode<U, T>> now = cache.back();
+                    BPT->WriteInterNode(now.first, now.second);
+                    map.erase(now.first);
+                    cache.pop_back();
+                }
+            } else cache.erase(map[key]);
+            cache.push_front(std::make_pair(key, val));
+            map[key] = cache.front();
+        }
+    };
+
+    LeafLRUCache Leaf_cache;
+    InterLRUCache Inter_cache;
+
+    BPlusTree(const std::string &file_name) : Leaf_cache(this), Inter_cache(this) {
         Inter_data.open(file_name + ".inter", std::ios::in | std::ios::out | std::ios::binary);
         Leaf_data.open(file_name + ".leaf", std::ios::in | std::ios::out | std::ios::binary);
         if (Inter_data.is_open() && Leaf_data.is_open()) {
@@ -165,9 +301,9 @@ public:
             Leaf_data.seekp(0, std::ios::end);
             Leaf_count = Leaf_data.tellp() / kLeafNodeSize;
             if (root_leaf) {
-                ReadLeafNode(root_pos, Leaf_root);
+                Leaf_cache.get(root_pos, Leaf_root);
             } else {
-                ReadInterNode(root_pos, Inter_root);
+                Inter_cache.get(root_pos, Inter_root);
             }
         }
         else {
@@ -180,10 +316,13 @@ public:
             Leaf_data.open(file_name + ".leaf", std::ios::in | std::ios::out | std::ios::binary);
             root_leaf = true;
             root_pos = Leaf_root.pos = ++Leaf_count;
+            Leaf_cache.put(root_pos, Leaf_root);
         }
     };
 
     ~BPlusTree() {
+        Inter_cache.dump();
+        Leaf_cache.dump();
         Inter_data.seekp(0);
         Inter_data.write(reinterpret_cast<char *>(&root_pos), sizeof(int));
         Inter_data.write(reinterpret_cast<char *>(&root_leaf), sizeof(bool));
@@ -216,7 +355,7 @@ public:
             Inter_now = Inter_root;
             while (1) {
                 int pos = Inter_now.UpperBound(now);
-                if ((!Inter_now.child_leaf[pos]) && (~Inter_now.child[pos])) ReadInterNode(Inter_now.child[pos], Inter_now);
+                if ((!Inter_now.child_leaf[pos]) && (~Inter_now.child[pos])) Inter_cache.get(Inter_now.child[pos], Inter_now);
                 else if (~Inter_now.child[pos]) {
                     return Inter_now.child[pos];
                 }
@@ -241,10 +380,10 @@ public:
 //                printInter(Inter_now);
 //                printf("---2 debug ---\n");
                 if ((!Inter_now.child_leaf[pos]) && (~Inter_now.child[pos])) {
-                    ReadInterNode(Inter_now.child[pos], Inter_now);
+                    Inter_cache.get(Inter_now.child[pos], Inter_now);
                 } else if (~Inter_now.child[pos]) break;
             }
-            ReadLeafNode(Inter_now.child[pos], Leaf_now);
+            Leaf_cache.get(Inter_now.child[pos], Leaf_now);
             pos = Leaf_now.LowerBound(now);
 //          printf("---1 debug---\n");
 //          printf("pos %d\n",pos);
@@ -263,7 +402,7 @@ public:
                 }
             }
             while (~Leaf_now.suc) {
-                ReadLeafNode(Leaf_now.suc, Leaf_now);
+                Leaf_cache.get(Leaf_now.suc, Leaf_now);
                 for (int i = 0; i < Leaf_now.count; i++) {
                     if (Leaf_now.key[i].index > now) {
                         if (!flag) {
@@ -301,7 +440,7 @@ public:
     }
 
     void SplitFa(int Fa, Element<U, T> &Key, int Pos, bool Leaf) {
-        ReadInterNode(Fa, Inter_fa);
+        Inter_cache.get(Fa, Inter_fa);
         int k = Inter_fa.UpperBound(Key);
         for (int i = Inter_fa.count; i > k; i--) Inter_fa.key[i] = Inter_fa.key[i - 1];
         Inter_fa.key[k] = Key;
@@ -312,7 +451,7 @@ public:
         }
         Inter_fa.child[k + 1] = Pos;
         Inter_fa.child_leaf[k + 1] = Leaf;
-        WriteInterNode(Fa, Inter_fa);
+        Inter_cache.put(Fa, Inter_fa);
         if (Fa == root_pos) {
             Inter_root = Inter_fa;
         }
@@ -329,9 +468,9 @@ public:
         nex.pre = now.pos;
         nex.suc = now.suc;
         if (~now.suc) {
-            ReadLeafNode(now.suc, Leaf_nex);
+            Leaf_cache.get(now.suc, Leaf_nex);
             Leaf_nex.pre = nex.pos;
-            WriteLeafNode(now.suc, Leaf_nex);
+            Leaf_cache.put(now.suc, Leaf_nex);
         }
         now.suc = nex.pos;
     }
@@ -341,8 +480,8 @@ public:
         SplitList(now, nex);
         SplitLeafKey(now, nex);
         nex.fa = now.fa;
-        WriteLeafNode(now.pos, now);
-        WriteLeafNode(nex.pos, nex);
+        Leaf_cache.put(now.pos, now);
+        Leaf_cache.put(nex.pos, nex);
         SplitFa(now.fa, nex.key[0], nex.pos, true);
     }
 
@@ -352,13 +491,13 @@ public:
             nex.child_leaf[i] = now.child_leaf[now.count + 1 + i];
             if (~nex.child[i]) {
                 if (nex.child_leaf[i]) {
-                    ReadLeafNode(nex.child[i], Leaf_child);
+                    Leaf_cache.get(nex.child[i], Leaf_child);
                     Leaf_child.fa = nex.pos;
-                    WriteLeafNode(nex.child[i], Leaf_child);
+                    Leaf_cache.put(nex.child[i], Leaf_child);
                 } else {
-                    ReadInterNode(nex.child[i], Inter_child);
+                    Inter_cache.get(nex.child[i], Inter_child);
                     Inter_child.fa = nex.pos;
-                    WriteInterNode(nex.child[i], Inter_child);
+                    Inter_cache.put(nex.child[i], Inter_child);
                 }
             }
         }
@@ -378,8 +517,8 @@ public:
         SplitInterKey(now, nex, x);
         SplitChild(now, nex);
         nex.fa = now.fa;
-        WriteInterNode(now.pos, now);
-        WriteInterNode(nex.pos, nex);
+        Inter_cache.put(now.pos, now);
+        Inter_cache.put(nex.pos, nex);
         SplitFa(now.fa, x, nex.pos, false);
     }
 
@@ -392,7 +531,7 @@ public:
         new_root.child_leaf[0] = now.is_leaf;
         new_root.child_leaf[1] = nex.is_leaf;
         nex.fa = now.fa = new_root.pos;
-        WriteInterNode(new_root.pos, new_root);
+        Inter_cache.put(new_root.pos, new_root);
         root_pos = new_root.pos;
     }
 
@@ -403,17 +542,17 @@ public:
             SplitInterKey(Inter_root, nex, x);
             SplitChild(Inter_root, nex);
             NewRoot(Inter_root, nex, x);
-            WriteInterNode(Inter_root.pos, Inter_root);
-            WriteInterNode(nex.pos, nex);
-            ReadInterNode(root_pos, Inter_root);
+            Inter_cache.put(Inter_root.pos, Inter_root);
+            Inter_cache.put(nex.pos, nex);
+            Inter_cache.get(root_pos, Inter_root);
         } else {
             LeafNode<U, T> nex(++Leaf_count);
             SplitLeafKey(Leaf_root, nex);
             SplitList(Leaf_root, nex);
             NewRoot(Leaf_root, nex, nex.key[0]);
-            WriteLeafNode(Leaf_root.pos, Leaf_root);
-            WriteLeafNode(nex.pos, nex);
-            ReadInterNode(root_pos, Inter_root);
+            Leaf_cache.put(Leaf_root.pos, Leaf_root);
+            Leaf_cache.put(nex.pos, nex);
+            Inter_cache.get(root_pos, Inter_root);
             root_leaf = false;
         }
     }
@@ -424,7 +563,7 @@ public:
         for (int i = now.count; i > pos; i--) now.key[i] = now.key[i - 1];
         now.key[pos] = x;
         now.count++;
-        WriteLeafNode(now.pos, now);
+        Leaf_cache.put(now.pos, now);
     }
 
     void Insert(const Element<U, T> &x) {
@@ -436,7 +575,7 @@ public:
             return ;
         }
         int Leaf_pos = Find(x);
-        ReadLeafNode(Leaf_pos, Leaf_now);
+        Leaf_cache.get(Leaf_pos, Leaf_now);
         InsertKey(Leaf_now, x);
 //        printf("---1 debug---\n");
 //        printLeaf(Leaf_now);
@@ -444,7 +583,7 @@ public:
 //        printLeaf(Leaf_nex);
         if (Leaf_now.count >= kMaxBlockSize) {
             SplitLeaf(Leaf_now);
-            ReadInterNode(Leaf_now.fa, Inter_now);
+            Inter_cache.get(Leaf_now.fa, Inter_now);
 //            printf("---1 debug---\n");
 //            printInter(Inter_now);
 //            printf("---2 debug---\n");
@@ -454,7 +593,7 @@ public:
                     break;
                 }
                 SplitInter(Inter_now);
-                ReadInterNode(Inter_now.fa, Inter_now);
+                Inter_cache.get(Inter_now.fa, Inter_now);
             }
         }
         return ;
@@ -467,7 +606,7 @@ public:
             Fa.child_leaf[i] = Fa.child_leaf[i + 1];
         }
         Fa.count--;
-        WriteInterNode(Fa.pos, Fa);
+        Inter_cache.put(Fa.pos, Fa);
         if (Fa.pos == root_pos) {
             Inter_root = Fa;
         }
@@ -480,9 +619,9 @@ public:
 
     void MergeList(LeafNode<U, T> &now, LeafNode<U, T> &nex) {
         if (~nex.suc) {
-            ReadLeafNode(nex.suc, Leaf_nex_nex);
+            Leaf_cache.get(nex.suc, Leaf_nex_nex);
             Leaf_nex_nex.pre = now.pos;
-            WriteLeafNode(nex.suc, Leaf_nex_nex);
+            Leaf_cache.put(nex.suc, Leaf_nex_nex);
         }
         now.suc = nex.suc;
     }
@@ -490,7 +629,7 @@ public:
     void MergeLeaf(LeafNode<U, T> &now, LeafNode<U, T> &nex, InterNode<U, T> &fa, int k) {
         MergeList(now, nex);
         MergeLeafKey(now, nex);
-        WriteLeafNode(now.pos, now);
+        Leaf_cache.put(now.pos, now);
         MergeFa(fa, k);
     }
 
@@ -500,13 +639,13 @@ public:
             now.child_leaf[count + i] = nex.child_leaf[i];
             if (~nex.child[i]) {
                 if (nex.child_leaf[i]) {
-                    ReadLeafNode(nex.child[i], Leaf_child);
+                    Leaf_cache.get(nex.child[i], Leaf_child);
                     Leaf_child.fa = now.pos;
-                    WriteLeafNode(nex.child[i], Leaf_child);
+                    Leaf_cache.put(nex.child[i], Leaf_child);
                 } else {
-                    ReadInterNode(nex.child[i], Inter_child);
+                    Inter_cache.get(nex.child[i], Inter_child);
                     Inter_child.fa = now.pos;
-                    WriteInterNode(nex.child[i], Inter_child);
+                    Inter_cache.put(nex.child[i], Inter_child);
                 }
             }
         }
@@ -526,15 +665,15 @@ public:
             flag = true;
             now.key[Count - 1] = x_suc;
         }
-        WriteInterNode(now.pos, now);
+        Inter_cache.put(now.pos, now);
         MergeFa(fa, k);
     }
 
     void MergeRoot(const Element<U, T> &x, const Element<U, T> &x_suc, bool &flag) {
         if (!root_leaf) {
             if (!Inter_root.child_leaf[0]) {
-                ReadInterNode(Inter_root.child[0], Inter_now);
-                ReadInterNode(Inter_root.child[1], Inter_nex);
+                Inter_cache.get(Inter_root.child[0], Inter_now);
+                Inter_cache.get(Inter_root.child[1], Inter_nex);
                 int Count = Inter_now.count + 1;
                 MergeInterKey(Inter_now, Inter_nex, Inter_root.key[0]);
                 MergeChild(Inter_now, Inter_nex, Count);
@@ -544,16 +683,16 @@ public:
                 }
                 Inter_root = Inter_now;
                 root_pos = Inter_now.pos;
-                WriteInterNode(root_pos, Inter_root);
+                Inter_cache.put(root_pos, Inter_root);
             } else {
-                ReadLeafNode(Inter_root.child[0], Leaf_now);
-                ReadLeafNode(Inter_root.child[1], Leaf_nex);
+                Leaf_cache.get(Inter_root.child[0], Leaf_now);
+                Leaf_cache.get(Inter_root.child[1], Leaf_nex);
                 MergeLeafKey(Leaf_now, Leaf_nex);
                 MergeList(Leaf_now, Leaf_nex);
                 Leaf_root = Leaf_now;
                 root_pos = Leaf_now.pos;
                 root_leaf = true;
-                WriteLeafNode(root_pos, Leaf_root);
+                Leaf_cache.put(root_pos, Leaf_root);
             }
         }
     }
@@ -569,20 +708,20 @@ public:
         if (now.count > pos) suc = now.key[pos];
         else {
             if (~now.suc) {
-                ReadLeafNode(now.suc, Leaf_now);
+                Leaf_cache.get(now.suc, Leaf_now);
                 suc = Leaf_now.key[0];
             }
         }
-        WriteLeafNode(now.pos, now);
+        Leaf_cache.put(now.pos, now);
         if (!pos) {
             if (~now.fa) {
-                ReadInterNode(now.fa, Inter_fa);
+                Inter_cache.get(now.fa, Inter_fa);
                 int k = Inter_fa.LowerBound(x);
                 if (Inter_fa.key[k] == x) {
                     if (now.count) {
                         Inter_fa.key[k] = now.key[0];
                         flag = true;
-                        WriteInterNode(now.fa, Inter_fa);
+                        Inter_cache.put(now.fa, Inter_fa);
                         if (now.fa == root_pos) {
                             Inter_root = Inter_fa;
                         }
@@ -595,14 +734,14 @@ public:
 
     void FindPre(InterNode<U, T> &now, InterNode<U, T>& nex, InterNode<U, T>& fa, int& k, Element<U, T> &x) {
         if (~nex.fa) {
-            ReadInterNode(nex.fa, fa);
+            Inter_cache.get(nex.fa, fa);
             k = fa.UpperBound(x);
             if (k > 0 && (~fa.child[k - 1])) {
-                ReadInterNode(fa.child[k - 1], now);
+                Inter_cache.get(fa.child[k - 1], now);
                 k--;
             } else {
                 now = nex;
-                ReadInterNode(fa.child[1], nex);
+                Inter_cache.get(fa.child[1], nex);
             }
         }
     }
@@ -613,18 +752,18 @@ public:
             int pos = Inter_now.LowerBound(x);
             if (pos == Inter_now.count) {
                 if ((!Inter_now.child_leaf[pos]) && (~Inter_now.child[pos])) {
-                    ReadInterNode(Inter_now.child[pos], Inter_now);
+                    Inter_cache.get(Inter_now.child[pos], Inter_now);
                     continue;
                 }
                 else return ;
             }
             if (Inter_now.key[pos] == x) {
                 Inter_now.key[pos] = x_suc;
-                WriteInterNode(Inter_now.pos, Inter_now);
+                Inter_cache.put(Inter_now.pos, Inter_now);
                 if (Inter_now.pos == root_pos) Inter_root = Inter_now;
                 return ;
             } else if (Inter_now.key[pos] > x) {
-                if ((!Inter_now.child_leaf[pos]) && (~Inter_now.child[pos])) ReadInterNode(Inter_now.child[pos], Inter_now);
+                if ((!Inter_now.child_leaf[pos]) && (~Inter_now.child[pos])) Inter_cache.get(Inter_now.child[pos], Inter_now);
                 else return ;
             }
         }
@@ -635,9 +774,9 @@ public:
         for (int i = 0; i < nex.count; i++) nex.key[i] = nex.key[i + 1];
         nex.count--;
         fa.key[k] = nex.key[0];
-        WriteLeafNode(now.pos, now);
-        WriteLeafNode(nex.pos, nex);
-        WriteInterNode(fa.pos, fa);
+        Leaf_cache.put(now.pos, now);
+        Leaf_cache.put(nex.pos, nex);
+        Inter_cache.put(fa.pos, fa);
         if (fa.pos == root_pos) Inter_root = fa;
     }
 
@@ -646,9 +785,9 @@ public:
         nex.count++;
         nex.key[0] = now.key[--now.count];
         fa.key[k] = nex.key[0];
-        WriteLeafNode(now.pos, now);
-        WriteLeafNode(nex.pos, nex);
-        WriteInterNode(fa.pos, fa);
+        Leaf_cache.put(now.pos, now);
+        Leaf_cache.put(nex.pos, nex);
+        Inter_cache.put(fa.pos, fa);
         if (fa.pos == root_pos) Inter_root = fa;
     }
 
@@ -657,13 +796,13 @@ public:
         now.child[now.count] = nex.child[0];
         now.child_leaf[now.count] = nex.child_leaf[0];
         if (now.child_leaf[now.count]) {
-            ReadLeafNode(now.child[now.count], Leaf_child);
+            Leaf_cache.get(now.child[now.count], Leaf_child);
             Leaf_child.fa = now.pos;
-            WriteLeafNode(now.child[now.count], Leaf_child);
+            Leaf_cache.put(now.child[now.count], Leaf_child);
         } else {
-            ReadInterNode(now.child[now.count], Inter_child);
+            Inter_cache.get(now.child[now.count], Inter_child);
             Inter_child.fa = now.pos;
-            WriteInterNode(now.child[now.count], Inter_child);
+            Inter_cache.put(now.child[now.count], Inter_child);
         }
         for (int i = 0; i < nex.count; i++) nex.key[i] = nex.key[i + 1];
         for (int i = 0; i <= nex.count; i++) {
@@ -672,9 +811,9 @@ public:
         }
         nex.count--;
         std::swap(fa.key[k], now.key[now.count - 1]);
-        WriteInterNode(now.pos, now);
-        WriteInterNode(nex.pos, nex);
-        WriteInterNode(fa.pos, fa);
+        Inter_cache.put(now.pos, now);
+        Inter_cache.put(nex.pos, nex);
+        Inter_cache.put(fa.pos, fa);
         if (fa.pos == root_pos) Inter_root = fa;
     }
 
@@ -688,19 +827,19 @@ public:
         nex.child[0] = now.child[now.count];
         nex.child_leaf[0] = now.child_leaf[now.count];
         if (now.child_leaf[now.count]) {
-            ReadLeafNode(now.child[now.count], Leaf_child);
+            Leaf_cache.get(now.child[now.count], Leaf_child);
             Leaf_child.fa = nex.pos;
-            WriteLeafNode(now.child[now.count], Leaf_child);
+            Leaf_cache.put(now.child[now.count], Leaf_child);
         } else {
-            ReadInterNode(now.child[now.count], Inter_child);
+            Inter_cache.get(now.child[now.count], Inter_child);
             Inter_child.fa = nex.pos;
-            WriteInterNode(now.child[now.count], Inter_child);
+            Inter_cache.put(now.child[now.count], Inter_child);
         }
         nex.key[0] = now.key[--now.count];
         std::swap(fa.key[k], nex.key[0]);
-        WriteInterNode(now.pos, now);
-        WriteInterNode(nex.pos, nex);
-        WriteInterNode(fa.pos, fa);
+        Inter_cache.put(now.pos, now);
+        Inter_cache.put(nex.pos, nex);
+        Inter_cache.put(fa.pos, fa);
         if (fa.pos == root_pos) Inter_root = fa;
     }
 
@@ -712,17 +851,17 @@ public:
             return ;
         }
         int Leaf_pos = Find(x);
-        ReadLeafNode(Leaf_pos, Leaf_nex);
-        ReadInterNode(Leaf_nex.fa, Inter_fa);
+        Leaf_cache.get(Leaf_pos, Leaf_nex);
+        Inter_cache.get(Leaf_nex.fa, Inter_fa);
         int k = Inter_fa.UpperBound(Leaf_nex.key[0]);
         bool ret = EraseKey(Leaf_nex, x, x_suc, flag);
         if (!ret) return ;
         if (k > 0 && (~Inter_fa.child[k - 1])) {
-            ReadLeafNode(Inter_fa.child[k - 1], Leaf_now);
+            Leaf_cache.get(Inter_fa.child[k - 1], Leaf_now);
             k--;
         } else {
             Leaf_now = Leaf_nex;
-            ReadLeafNode(Inter_fa.child[1], Leaf_nex);
+            Leaf_cache.get(Inter_fa.child[1], Leaf_nex);
         }
 //        printf("---1 debug---\n");
 //        printLeaf(Leaf_now);
@@ -772,11 +911,11 @@ public:
 
     void printLeaf(int pos) {
         LeafNode<U, T> now;
-        ReadLeafNode(pos, now);
+        Leaf_cache.get(pos, now);
         printLeaf(now);
     }
 
-    void printLeaf(LeafNode<U, T> &now) {
+    static void printLeaf(LeafNode<U, T> &now) {
         std::cout << "Leaf " << now.is_leaf << ' ' << now.count << ' ' << now.fa << ' ' << now.pos << '\n';
         for (int i = 0; i < now.count; i++) {
             std::cout << "i " << i << " key " << now.key[i].index << ' ' << now.key[i].value << '\n';
@@ -793,12 +932,12 @@ public:
             std::cout << "i " << i << " " << now.child[i] << " nowpos " << now.pos << '\n';
             if (now.child_leaf[i] && (~now.child[i])) {
                 LeafNode<U, T> Leaf;
-                ReadLeafNode(now.child[i], Leaf);
+                Leaf_cache.get(now.child[i], Leaf);
                 printLeaf(Leaf);
             }
             else if (~now.child[i]) {
                 InterNode<U, T> Inter;
-                ReadInterNode(now.child[i], Inter);
+                Inter_cache.get(now.child[i], Inter);
                 print(Inter);
             }
         }
@@ -807,17 +946,17 @@ public:
 
     void print(int pos) {
         InterNode<U, T> now;
-        ReadInterNode(pos, now);
+        Inter_cache.get(pos, now);
         print(now);
     }
 
     void printInter(int pos) {
         InterNode<U, T> now;
-        ReadInterNode(pos, now);
+        Inter_cache.get(pos, now);
         printInter(now);
     }
 
-    void printInter(InterNode<U, T> &now) {
+    static void printInter(InterNode<U, T> &now) {
         std::cout << "Inter " << now.is_leaf << ' ' << now.count << ' ' << now.fa << ' ' << now.pos << '\n';
         for (int i = 0; i < now.count; i++) {
             std::cout << "i " << i << " key " << now.key[i].index << ' ' << now.key[i].value << '\n';
@@ -834,6 +973,16 @@ public:
         else print(Inter_root);
         std::cout << "-------\n";
     }
+
+    void debug2() {
+        std::cout << "-------\n";
+        Leaf_cache.debug();
+        std::cout << "-------\n";
+        Inter_cache.debug();
+        std::cout << "-------\n";
+    }
 };
+
+
 
 #endif //TICKETSYSTEM_BPLUSTREE_H

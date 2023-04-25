@@ -17,8 +17,7 @@ public:
     }
 
     string(const std::string &Index) {
-        memset(index, 0, kSizeofIndex);
-        strcpy(index, Index.c_str());
+        Index.copy(index, kSizeofIndex, 0);
     }
 
     string (const char* Index) {
