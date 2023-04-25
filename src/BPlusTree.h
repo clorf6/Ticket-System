@@ -15,8 +15,8 @@
 #include "List.h"
 #include "LinkedHashMap.h"
 
-const int kMaxBlockSize = 4;
-const int kMinBlockSize = 2;
+const int kMaxBlockSize = 50;
+const int kMinBlockSize = 15;
 
 template<class U, class T>
 class Element {
