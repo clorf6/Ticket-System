@@ -431,20 +431,12 @@ public:
             int pos;
             while (1) {
                 pos = Inter_now.LowerBound(now);
-//                printf("---1 debug---\n");
-//                printf("pos %d\n",pos);
-//                printInter(Inter_now);
-//                printf("---2 debug ---\n");
                 if ((!Inter_now.child_leaf[pos]) && (~Inter_now.child[pos])) {
                     Inter_cache.get(Inter_now.child[pos], Inter_now);
                 } else if (~Inter_now.child[pos]) break;
             }
             Leaf_cache.get(Inter_now.child[pos], Leaf_now);
             pos = Leaf_now.LowerBound(now);
-//          printf("---1 debug---\n");
-//          printf("pos %d\n",pos);
-//          printLeaf(Leaf_now);
-//          printf("---2 debug ---\n");
             bool flag = false;
             for (int i = pos; i < Leaf_now.count; i++) {
                 if (Leaf_now.key[i].index > now) {
@@ -633,16 +625,9 @@ public:
         int Leaf_pos = Find(x);
         Leaf_cache.get(Leaf_pos, Leaf_now);
         InsertKey(Leaf_now, x);
-//        printf("---1 debug---\n");
-//        printLeaf(Leaf_now);
-//        printf("---2 debug---\n");
-//        printLeaf(Leaf_nex);
         if (Leaf_now.count >= kMaxBlockSize) {
             SplitLeaf(Leaf_now);
             Inter_cache.get(Leaf_now.fa, Inter_now);
-//            printf("---1 debug---\n");
-//            printInter(Inter_now);
-//            printf("---2 debug---\n");
             while (Inter_now.count >= kMaxBlockSize) {
                 if (Inter_now.pos == root_pos) {
                     SplitRoot();
@@ -923,13 +908,6 @@ public:
             Leaf_now = Leaf_nex;
             Leaf_cache.get(Inter_fa.child[1], Leaf_nex);
         }
-//        printf("---1 debug---\n");
-//        printLeaf(Leaf_now);
-//        printf("---2 debug---\n");
-//        printLeaf(Leaf_nex);
-//        printf("---3 debug---\n");
-//        printInter(Inter_fa);
-//        printf("---4 debug---\n");
         if (Leaf_now.count <= kMinBlockSize && Leaf_nex.count > kMinBlockSize) {
             BorrowLeafPre(Leaf_now, Leaf_nex, Inter_fa, k);
         } else if (Leaf_now.count > kMinBlockSize && Leaf_nex.count <= kMinBlockSize) {
