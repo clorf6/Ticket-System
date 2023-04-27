@@ -14,6 +14,7 @@
 #include "_string.h"
 #include "List.h"
 #include "LinkedHashMap.h"
+#include "vector.h"
 
 const int kMaxBlockSize = 70;
 const int kMinBlockSize = 25;
@@ -163,8 +164,6 @@ public:
     InterNode<U, T> Inter_root;
     bool root_leaf;
     int root_pos;
-    int Inter_count;
-    int Leaf_count;
     std::fstream Inter_data;
     std::fstream Leaf_data;
     const int kInterNodeSize = sizeof(InterNode<U, T>);
@@ -174,6 +173,59 @@ public:
     static const int kCacheCapacity = 3000;
     InterNode<U, T> Inter_now, Inter_nex, Inter_child, Inter_fa;
     LeafNode<U, T> Leaf_now, Leaf_nex, Leaf_child, Leaf_nex_nex;
+
+    class Pool {
+    public:
+        std::fstream Pool_data;
+        sjtu::vector<int> pool;
+        int Pool_count;
+        int Node_count;
+        static const int kSizeofInt = sizeof(int);
+
+        void ReadPool(int pos, int &ret) {
+            Pool_data.seekg((pos - 1) * kSizeofInt);
+            Pool_data.read(reinterpret_cast<char *>(&ret), kSizeofInt);
+        }
+
+        void WritePool(int pos, int &ret) {
+            Pool_data.seekp((pos - 1) * kSizeofInt);
+            Pool_data.write(reinterpret_cast<char *>(&ret), kSizeofInt);
+        }
+
+        Pool(const std::string &file_name) {
+            Pool_data.open(file_name + ".pool", std::ios::in | std::ios::out | std::ios::binary);
+            if (Pool_data.is_open()) {
+                Pool_data.seekp(0, std::ios::end);
+                Pool_count = Pool_data.tellp() / kSizeofInt;
+                int pool_now = 0;
+                for (int i = 1; i <= Pool_count; i++) {
+                    ReadPool(i, pool_now);
+                    pool.push_back(pool_now);
+                }
+            } else {
+                std::fstream create;
+                create.open(file_name + ".pool", std::ios::out);
+                create.close();
+                Pool_data.open(file_name + ".pool", std::ios::in | std::ios::out | std::ios::binary);
+            }
+        }
+
+        ~Pool() {
+            Pool_count = pool.size();
+            for (int i = 0; i < Pool_count; i++) WritePool(i + 1, pool[i]);
+        }
+
+        int Alloc() {
+            if (pool.empty()) return (++Node_count);
+            int ret = pool.back();
+            pool.pop_back();
+            return ret;
+        }
+
+        void Recycle(int& ret) {
+            pool.push_back(ret);
+        }
+    };
 
     void ReadInterNode(int pos, InterNode<U, T> &ret) {
         Inter_data.seekg(HeaderSize + (pos - 1) * kInterNodeSize);
@@ -308,8 +360,9 @@ public:
 
     LeafLRUCache Leaf_cache;
     InterLRUCache Inter_cache;
+    Pool Leaf_pool, Inter_pool;
 
-    BPlusTree(const std::string &file_name) : Leaf_cache(this), Inter_cache(this) {
+    BPlusTree(const std::string &file_name) : Leaf_cache(this), Inter_cache(this), Leaf_pool(file_name), Inter_pool(file_name) {
         Inter_data.open(file_name + ".inter", std::ios::in | std::ios::out | std::ios::binary);
         Leaf_data.open(file_name + ".leaf", std::ios::in | std::ios::out | std::ios::binary);
         if (Inter_data.is_open() && Leaf_data.is_open()) {
@@ -317,9 +370,9 @@ public:
             Inter_data.read(reinterpret_cast<char *>(&root_pos), sizeof(int));
             Inter_data.read(reinterpret_cast<char *>(&root_leaf), sizeof(bool));
             Inter_data.seekp(0, std::ios::end);
-            Inter_count = ((int)Inter_data.tellp() - 4) / kInterNodeSize;
+            Inter_pool.Node_count = ((int)Inter_data.tellp() - 4) / kInterNodeSize;
             Leaf_data.seekp(0, std::ios::end);
-            Leaf_count = Leaf_data.tellp() / kLeafNodeSize;
+            Leaf_pool.Node_count = Leaf_data.tellp() / kLeafNodeSize;
             if (root_leaf) {
                 Leaf_cache.get(root_pos, Leaf_root);
             } else {
@@ -335,7 +388,7 @@ public:
             create.close();
             Leaf_data.open(file_name + ".leaf", std::ios::in | std::ios::out | std::ios::binary);
             root_leaf = true;
-            root_pos = Leaf_root.pos = ++Leaf_count;
+            root_pos = Leaf_root.pos = Leaf_pool.Alloc();
             Leaf_cache.put(root_pos, Leaf_root);
         }
     };
@@ -476,7 +529,7 @@ public:
     }
 
     void SplitLeaf(LeafNode<U, T> &now) {
-        LeafNode<U, T> nex(++Leaf_count);
+        LeafNode<U, T> nex(Leaf_pool.Alloc());
         SplitList(now, nex);
         SplitLeafKey(now, nex);
         nex.fa = now.fa;
@@ -512,7 +565,7 @@ public:
     }
 
     void SplitInter(InterNode<U, T> &now) {
-        InterNode<U, T> nex(++Inter_count);
+        InterNode<U, T> nex(Inter_pool.Alloc());
         Element<U, T> x;
         SplitInterKey(now, nex, x);
         SplitChild(now, nex);
@@ -523,7 +576,7 @@ public:
     }
 
     void NewRoot(Node<U, T> &now, Node<U, T> &nex, Element<U, T> &x) {
-        InterNode<U, T> new_root(++Inter_count);
+        InterNode<U, T> new_root(Inter_pool.Alloc());
         new_root.count = 1;
         new_root.key[0] = x;
         new_root.child[0] = now.pos;
@@ -537,7 +590,7 @@ public:
 
     void SplitRoot() {
         if (!root_leaf) {
-            InterNode<U, T> nex(++Inter_count);
+            InterNode<U, T> nex(Inter_pool.Alloc());
             Element<U, T> x;
             SplitInterKey(Inter_root, nex, x);
             SplitChild(Inter_root, nex);
@@ -546,7 +599,7 @@ public:
             Inter_cache.put(nex.pos, nex);
             Inter_cache.get(root_pos, Inter_root);
         } else {
-            LeafNode<U, T> nex(++Leaf_count);
+            LeafNode<U, T> nex(Leaf_pool.Alloc());
             SplitLeafKey(Leaf_root, nex);
             SplitList(Leaf_root, nex);
             NewRoot(Leaf_root, nex, nex.key[0]);
@@ -559,7 +612,7 @@ public:
 
     void InsertKey(LeafNode<U, T> &now, const Element<U, T> &x) {
         int pos = now.UpperBound(x);
-        //if (pos && now.key[pos - 1] == x) throw Exception("Element already exists.");
+        if (pos && now.key[pos - 1] == x) throw Exception("Element already exists.");
         for (int i = now.count; i > pos; i--) now.key[i] = now.key[i - 1];
         now.key[pos] = x;
         now.count++;
@@ -630,6 +683,7 @@ public:
         MergeList(now, nex);
         MergeLeafKey(now, nex);
         Leaf_cache.put(now.pos, now);
+        Leaf_pool.Recycle(nex.pos);
         MergeFa(fa, k);
     }
 
@@ -666,6 +720,7 @@ public:
             now.key[Count - 1] = x_suc;
         }
         Inter_cache.put(now.pos, now);
+        Inter_pool.Recycle(nex.pos);
         MergeFa(fa, k);
     }
 
@@ -684,6 +739,7 @@ public:
                 Inter_root = Inter_now;
                 root_pos = Inter_now.pos;
                 Inter_cache.put(root_pos, Inter_root);
+                Inter_pool.Recycle(Inter_nex.pos);
             } else {
                 Leaf_cache.get(Inter_root.child[0], Leaf_now);
                 Leaf_cache.get(Inter_root.child[1], Leaf_nex);
@@ -693,6 +749,7 @@ public:
                 root_pos = Leaf_now.pos;
                 root_leaf = true;
                 Leaf_cache.put(root_pos, Leaf_root);
+                Leaf_pool.Recycle(Leaf_nex.pos);
             }
         }
     }
@@ -700,8 +757,8 @@ public:
     bool EraseKey(LeafNode<U, T> &now, const Element<U, T> &x, Element<U, T> &suc, bool &flag) {
         int pos = now.LowerBound(x);
         if (pos >= now.count || now.key[pos] != x) {
-            return false;
             //throw Exception("Element doesn't exist.");
+            return false;
         }
         for (int i = pos; i < now.count; i++) now.key[i] = now.key[i + 1];
         now.count--;
@@ -968,7 +1025,7 @@ public:
 
     void debug() {
         std::cout << "-------\n";
-        std::cout << "Inter_count " << Inter_count << " Leaf_count " << Leaf_count << '\n';
+        std::cout << "Inter_count " << Inter_pool.Node_count << " Leaf_count " << Leaf_pool.Node_count << '\n';
         if (root_leaf) printLeaf(Leaf_root);
         else print(Inter_root);
         std::cout << "-------\n";
