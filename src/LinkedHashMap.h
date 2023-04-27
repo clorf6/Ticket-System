@@ -7,7 +7,6 @@
 
 #include <cstdio>
 #include <iostream>
-#include <functional>
 #include "List.h"
 
 const size_t kMapSize = 3000;

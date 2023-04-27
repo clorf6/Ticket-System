@@ -156,6 +156,65 @@ public:
             Node<U, T>(other), pre(other.pre), suc(other.suc) {};
 };
 
+class Pool {
+public:
+    std::fstream Pool_data;
+    sjtu::vector<int> pool;
+    int Pool_count;
+    int Node_count;
+    static const int kSizeofInt = sizeof(int);
+    static const int HeaderSize = sizeof(int);
+
+    void ReadPool(int pos, int &ret) {
+        Pool_data.seekg(HeaderSize + (pos - 1) * kSizeofInt);
+        Pool_data.read(reinterpret_cast<char *>(&ret), kSizeofInt);
+    }
+
+    void WritePool(int pos, int &ret) {
+        Pool_data.seekp(HeaderSize + (pos - 1) * kSizeofInt);
+        Pool_data.write(reinterpret_cast<char *>(&ret), kSizeofInt);
+    }
+
+    Pool(const std::string &file_name) {
+        Pool_data.open(file_name + ".pool", std::ios::in | std::ios::out | std::ios::binary);
+        if (Pool_data.is_open()) {
+            Pool_data.seekg(0);
+            Pool_data.read(reinterpret_cast<char *>(&Node_count), kSizeofInt);
+            Pool_data.seekp(0, std::ios::end);
+            Pool_count = ((int)Pool_data.tellp() - HeaderSize) / kSizeofInt;
+            int pool_now = 0;
+            for (int i = 1; i <= Pool_count; i++) {
+                ReadPool(i, pool_now);
+                pool.push_back(pool_now);
+            }
+        } else {
+            std::fstream create;
+            create.open(file_name + ".pool", std::ios::out);
+            create.close();
+            Pool_data.open(file_name + ".pool", std::ios::in | std::ios::out | std::ios::binary);
+        }
+    }
+
+    ~Pool() {
+        Pool_count = pool.size();
+        for (int i = 0; i < Pool_count; i++) WritePool(i + 1, pool[i]);
+        Pool_data.seekp(0);
+        Pool_data.write(reinterpret_cast<char *>(&Node_count), kSizeofInt);
+        Pool_data.close();
+    }
+
+    int Alloc() {
+        if (pool.empty()) return (++Node_count);
+        int ret = pool.back();
+        pool.pop_back();
+        return ret;
+    }
+
+    void Recycle(int& ret) {
+        pool.push_back(ret);
+    }
+};
+
 template<class U, class T>
 class BPlusTree {
     friend class LRUCache;
@@ -173,59 +232,6 @@ public:
     static const int kCacheCapacity = 3000;
     InterNode<U, T> Inter_now, Inter_nex, Inter_child, Inter_fa;
     LeafNode<U, T> Leaf_now, Leaf_nex, Leaf_child, Leaf_nex_nex;
-
-    class Pool {
-    public:
-        std::fstream Pool_data;
-        sjtu::vector<int> pool;
-        int Pool_count;
-        int Node_count;
-        static const int kSizeofInt = sizeof(int);
-
-        void ReadPool(int pos, int &ret) {
-            Pool_data.seekg((pos - 1) * kSizeofInt);
-            Pool_data.read(reinterpret_cast<char *>(&ret), kSizeofInt);
-        }
-
-        void WritePool(int pos, int &ret) {
-            Pool_data.seekp((pos - 1) * kSizeofInt);
-            Pool_data.write(reinterpret_cast<char *>(&ret), kSizeofInt);
-        }
-
-        Pool(const std::string &file_name) {
-            Pool_data.open(file_name + ".pool", std::ios::in | std::ios::out | std::ios::binary);
-            if (Pool_data.is_open()) {
-                Pool_data.seekp(0, std::ios::end);
-                Pool_count = Pool_data.tellp() / kSizeofInt;
-                int pool_now = 0;
-                for (int i = 1; i <= Pool_count; i++) {
-                    ReadPool(i, pool_now);
-                    pool.push_back(pool_now);
-                }
-            } else {
-                std::fstream create;
-                create.open(file_name + ".pool", std::ios::out);
-                create.close();
-                Pool_data.open(file_name + ".pool", std::ios::in | std::ios::out | std::ios::binary);
-            }
-        }
-
-        ~Pool() {
-            Pool_count = pool.size();
-            for (int i = 0; i < Pool_count; i++) WritePool(i + 1, pool[i]);
-        }
-
-        int Alloc() {
-            if (pool.empty()) return (++Node_count);
-            int ret = pool.back();
-            pool.pop_back();
-            return ret;
-        }
-
-        void Recycle(int& ret) {
-            pool.push_back(ret);
-        }
-    };
 
     void ReadInterNode(int pos, InterNode<U, T> &ret) {
         Inter_data.seekg(HeaderSize + (pos - 1) * kInterNodeSize);
@@ -369,10 +375,6 @@ public:
             Inter_data.seekg(0);
             Inter_data.read(reinterpret_cast<char *>(&root_pos), sizeof(int));
             Inter_data.read(reinterpret_cast<char *>(&root_leaf), sizeof(bool));
-            Inter_data.seekp(0, std::ios::end);
-            Inter_pool.Node_count = ((int)Inter_data.tellp() - 4) / kInterNodeSize;
-            Leaf_data.seekp(0, std::ios::end);
-            Leaf_pool.Node_count = Leaf_data.tellp() / kLeafNodeSize;
             if (root_leaf) {
                 Leaf_cache.get(root_pos, Leaf_root);
             } else {
