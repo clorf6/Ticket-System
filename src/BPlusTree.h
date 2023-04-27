@@ -163,7 +163,7 @@ public:
     int Pool_count;
     int Node_count;
     static const int kSizeofInt = sizeof(int);
-    static const int HeaderSize = sizeof(int);
+    static const int HeaderSize = sizeof(int) * 2;
 
     void ReadPool(int pos, int &ret) {
         Pool_data.seekg(HeaderSize + (pos - 1) * kSizeofInt);
@@ -180,8 +180,7 @@ public:
         if (Pool_data.is_open()) {
             Pool_data.seekg(0);
             Pool_data.read(reinterpret_cast<char *>(&Node_count), kSizeofInt);
-            Pool_data.seekp(0, std::ios::end);
-            Pool_count = ((int)Pool_data.tellp() - HeaderSize) / kSizeofInt;
+            Pool_data.read(reinterpret_cast<char *>(&Pool_count), kSizeofInt);
             int pool_now = 0;
             for (int i = 1; i <= Pool_count; i++) {
                 ReadPool(i, pool_now);
@@ -192,6 +191,7 @@ public:
             create.open(file_name + ".pool", std::ios::out);
             create.close();
             Pool_data.open(file_name + ".pool", std::ios::in | std::ios::out | std::ios::binary);
+            Node_count = Pool_count = 0;
         }
     }
 
@@ -200,6 +200,7 @@ public:
         for (int i = 0; i < Pool_count; i++) WritePool(i + 1, pool[i]);
         Pool_data.seekp(0);
         Pool_data.write(reinterpret_cast<char *>(&Node_count), kSizeofInt);
+        Pool_data.write(reinterpret_cast<char *>(&Pool_count), kSizeofInt);
         Pool_data.close();
     }
 
