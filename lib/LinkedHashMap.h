@@ -11,7 +11,7 @@
 
 const size_t kMapSize = 3000;
 
-template<class Key, class T>
+template<class Key, class T, class Hash = std::hash<int>>
 class LinkedHashMap {
 friend class List;
 private:
@@ -22,6 +22,7 @@ private:
         node() : nex(nullptr) {};
     };
 
+    Hash hash;
     node** head;
     size_t siz;
 public:
@@ -47,7 +48,7 @@ public:
 
 
     T& operator[](const Key& _key) {
-        unsigned long long hash_val = _key % kMapSize;
+        unsigned long long hash_val = hash(_key) % kMapSize;
         node* now = head[hash_val];
         while (now) {
             if (now->key == _key) {
@@ -63,7 +64,7 @@ public:
     }
 
     bool find(const Key& key) const {
-        unsigned long long hash_val = key % kMapSize;
+        unsigned long long hash_val = hash(key) % kMapSize;
         node* now = head[hash_val];
         while (now) {
             if (now->key == key) return true;
@@ -73,7 +74,7 @@ public:
     }
 
     void erase(const Key& key) {
-        unsigned long long hash_val = key % kMapSize;
+        unsigned long long hash_val = hash(key) % kMapSize;
         node* now = head[hash_val], *pre = nullptr;
         while (now) {
             if (now->key == key) {

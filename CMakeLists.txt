@@ -6,7 +6,8 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_FLAGS "-fmax-errors=10 -O2 -DONLINE_JUDGE -lm -std=c++17")
 add_compile_options(-fmax-errors=10 -O2 -DONLINE_JUDGE -lm -std=c++17)
 
+include_directories(lib)
 include_directories(src)
 
-add_executable(code src/BPlusTree.cpp)
+add_executable(code lib/BPlusTree.cpp)
 

@@ -12,9 +12,9 @@
 #include <cstring>
 #include "Exception.h"
 #include "_string.h"
-#include "List.h"
-#include "LinkedHashMap.h"
-#include "vector.h"
+#include "Pool.h"
+#include "Cache.h"
+#include "FileSystem.h"
 
 const int kMaxBlockSize = 70;
 const int kMinBlockSize = 25;
@@ -156,254 +156,50 @@ public:
             Node<U, T>(other), pre(other.pre), suc(other.suc) {};
 };
 
-class Pool {
-public:
-    std::fstream Pool_data;
-    sjtu::vector<int> pool;
-    int Pool_count;
-    int Node_count;
-    static const int kSizeofInt = sizeof(int);
-    static const int HeaderSize = sizeof(int) * 2;
 
-    void ReadPool(int pos, int &ret) {
-        Pool_data.seekg(HeaderSize + (pos - 1) * kSizeofInt);
-        Pool_data.read(reinterpret_cast<char *>(&ret), kSizeofInt);
-    }
-
-    void WritePool(int pos, int &ret) {
-        Pool_data.seekp(HeaderSize + (pos - 1) * kSizeofInt);
-        Pool_data.write(reinterpret_cast<char *>(&ret), kSizeofInt);
-    }
-
-    Pool(const std::string &file_name) {
-        Pool_data.open(file_name + ".pool", std::ios::in | std::ios::out | std::ios::binary);
-        if (Pool_data.is_open()) {
-            Pool_data.seekg(0);
-            Pool_data.read(reinterpret_cast<char *>(&Node_count), kSizeofInt);
-            Pool_data.read(reinterpret_cast<char *>(&Pool_count), kSizeofInt);
-            int pool_now = 0;
-            for (int i = 1; i <= Pool_count; i++) {
-                ReadPool(i, pool_now);
-                pool.push_back(pool_now);
-            }
-        } else {
-            std::fstream create;
-            create.open(file_name + ".pool", std::ios::out);
-            create.close();
-            Pool_data.open(file_name + ".pool", std::ios::in | std::ios::out | std::ios::binary);
-            Node_count = Pool_count = 0;
-        }
-    }
-
-    ~Pool() {
-        Pool_count = pool.size();
-        for (int i = 0; i < Pool_count; i++) WritePool(i + 1, pool[i]);
-        Pool_data.seekp(0);
-        Pool_data.write(reinterpret_cast<char *>(&Node_count), kSizeofInt);
-        Pool_data.write(reinterpret_cast<char *>(&Pool_count), kSizeofInt);
-        Pool_data.close();
-    }
-
-    int Alloc() {
-        if (pool.empty()) return (++Node_count);
-        int ret = pool.back();
-        pool.pop_back();
-        return ret;
-    }
-
-    void Recycle(int& ret) {
-        pool.push_back(ret);
-    }
-};
-
-template<class U, class T>
+template<class U, class T, class Hash = std::hash<int>>
 class BPlusTree {
-    friend class LRUCache;
 public:
     LeafNode<U, T> Leaf_root;
     InterNode<U, T> Inter_root;
     bool root_leaf;
     int root_pos;
-    std::fstream Inter_data;
-    std::fstream Leaf_data;
-    const int kInterNodeSize = sizeof(InterNode<U, T>);
-    const int kLeafNodeSize = sizeof(LeafNode<U, T>);
+    FileSystem<InterNode<U, T>> Inter_data;
+    FileSystem<LeafNode<U, T>> Leaf_data;
+    LRUCache<LeafNode<U, T>> Leaf_cache;
+    LRUCache<InterNode<U, T>> Inter_cache;
+    Pool Leaf_pool, Inter_pool;
+
     const int kSizeofElement = sizeof(Element<U, T>);
-    const int HeaderSize = sizeof(int) + sizeof(bool);
-    static const int kCacheCapacity = 3000;
+    const int kAppendixSize = sizeof(int) + sizeof(bool);
     InterNode<U, T> Inter_now, Inter_nex, Inter_child, Inter_fa;
     LeafNode<U, T> Leaf_now, Leaf_nex, Leaf_child, Leaf_nex_nex;
 
-    void ReadInterNode(int pos, InterNode<U, T> &ret) {
-        Inter_data.seekg(HeaderSize + (pos - 1) * kInterNodeSize);
-        Inter_data.read(reinterpret_cast<char *>(&ret), kInterNodeSize);
-    }
-
-    void ReadLeafNode(int pos, LeafNode<U, T> &ret) {
-        Leaf_data.seekg((pos - 1) * kLeafNodeSize);
-        Leaf_data.read(reinterpret_cast<char *>(&ret), kLeafNodeSize);
-    }
-
-    void WriteInterNode(int pos, InterNode<U, T> &ret) {
-        Inter_data.seekp(HeaderSize + (pos - 1) * kInterNodeSize);
-        Inter_data.write(reinterpret_cast<char *>(&ret), kInterNodeSize);
-    }
-
-    void WriteLeafNode(int pos, LeafNode<U, T> &ret) {
-        Leaf_data.seekp((pos - 1) * kLeafNodeSize);
-        Leaf_data.write(reinterpret_cast<char *>(&ret), kLeafNodeSize);
-    }
-
-    class LeafLRUCache {
-        friend class BPlusTree;
-    public:
-        BPlusTree<U, T>* BPT;
-        int capacity;
-        list<std::pair<int, LeafNode<U, T>>> cache;
-        LinkedHashMap<int, typename list<std::pair<int, LeafNode<U, T>>>::iterator> map;
-        LeafLRUCache(BPlusTree<U, T>* _BPT, const int& Capacity = kCacheCapacity) : BPT(_BPT), capacity(Capacity) {};
-
-        void debug() {
-            printf("LeafCache %d\n", cache.size());
-            typename list<std::pair<int, LeafNode<U, T>>>::iterator it = cache.front();
-            while (it != cache.end()) {
-                printf("first %d\n",(*it).first);
-                printLeaf((*it).second);
-                it++;
-            }
-        }
-
-        void dump() {
-            typename list<std::pair<int, LeafNode<U, T>>>::iterator it = cache.front();
-            std::pair<int, LeafNode<U, T>> now;
-            while (it != cache.end()) {
-                now = *it;
-                BPT->WriteLeafNode(now.first, now.second);
-                it++;
-            }
-        }
-
-        void get(int key, LeafNode<U, T>& now) {
-            if (!map.find(key)) {
-                BPT->ReadLeafNode(key, now);
-                put(key, now);
-                return ;
-            }
-            std::pair<int, LeafNode<U, T>> ret(*map[key]);
-            now = ret.second;
-            cache.erase(map[key]);
-            cache.push_front(std::make_pair(key, now));
-            map[key] = cache.front();
-        }
-
-        void put(int key, const LeafNode<U, T>& val) {
-            if (!map.find(key)) {
-                if (cache.size() == capacity) {
-                    std::pair<int, LeafNode<U, T>> now = cache.back();
-                    BPT->WriteLeafNode(now.first, now.second);
-                    map.erase(now.first);
-                    cache.pop_back();
-                }
-            } else cache.erase(map[key]);
-            cache.push_front(std::make_pair(key, val));
-            map[key] = cache.front();
-        }
-    };
-
-    class InterLRUCache {
-        friend class BPlusTree;
-    public:
-        BPlusTree<U, T>* BPT;
-        int capacity;
-        list<std::pair<int, InterNode<U, T>>> cache;
-        LinkedHashMap<int, typename list<std::pair<int, InterNode<U, T>>>::iterator> map;
-        InterLRUCache(BPlusTree<U, T>* _BPT, const int& Capacity = kCacheCapacity) : BPT(_BPT), capacity(Capacity) {};
-
-        void debug() {
-            printf("InterCache %d\n", cache.size());
-            typename list<std::pair<int, InterNode<U, T>>>::iterator it = cache.front();
-            while (it != cache.end()) {
-                printf("first %d\n",(*it).first);
-                printInter((*it).second);
-                it++;
-            }
-        }
-
-        void dump() {
-            typename list<std::pair<int, InterNode<U, T>>>::iterator it = cache.front();
-            std::pair<int, InterNode<U, T>> now;
-            while (it != cache.end()) {
-                now = *it;
-                BPT->WriteInterNode(now.first, now.second);
-                it++;
-            }
-        }
-
-        void get(int key, InterNode<U, T>& now) {
-            if (!map.find(key)) {
-                BPT->ReadInterNode(key, now);
-                put(key, now);
-                return ;
-            }
-            now = (*map[key]).second;
-            cache.erase(map[key]);
-            cache.push_front(std::make_pair(key, now));
-            map[key] = cache.front();
-        }
-
-        void put(int key, const InterNode<U, T>& val) {
-            if (!map.find(key)) {
-                if (cache.size() == capacity) {
-                    std::pair<int, InterNode<U, T>> now = cache.back();
-                    BPT->WriteInterNode(now.first, now.second);
-                    map.erase(now.first);
-                    cache.pop_back();
-                }
-            } else cache.erase(map[key]);
-            cache.push_front(std::make_pair(key, val));
-            map[key] = cache.front();
-        }
-    };
-
-    LeafLRUCache Leaf_cache;
-    InterLRUCache Inter_cache;
-    Pool Leaf_pool, Inter_pool;
-
-    BPlusTree(const std::string &file_name) : Leaf_cache(this), Inter_cache(this), Leaf_pool(file_name), Inter_pool(file_name) {
-        Inter_data.open(file_name + ".inter", std::ios::in | std::ios::out | std::ios::binary);
-        Leaf_data.open(file_name + ".leaf", std::ios::in | std::ios::out | std::ios::binary);
-        if (Inter_data.is_open() && Leaf_data.is_open()) {
-            Inter_data.seekg(0);
-            Inter_data.read(reinterpret_cast<char *>(&root_pos), sizeof(int));
-            Inter_data.read(reinterpret_cast<char *>(&root_leaf), sizeof(bool));
+    BPlusTree(const std::string &file_name) :
+    Inter_data(file_name + ".inter"), Leaf_data(file_name + ".leaf"), Leaf_cache(&Leaf_data), Inter_cache(&Inter_data),
+    Leaf_pool(file_name + "_Leaf"), Inter_pool(file_name + "_Inter") {
+        if (Inter_data.empty()) {
+            root_leaf = true;
+            root_pos = Leaf_root.pos = Leaf_pool.Alloc();
+            Leaf_cache.put(root_pos, Leaf_root);
+        } else {
+            Inter_data.file.seekg(-kAppendixSize, std::ios::end);
+            Inter_data.file.read(reinterpret_cast<char *>(&root_pos), sizeof(int));
+            Inter_data.file.read(reinterpret_cast<char *>(&root_leaf), sizeof(bool));
             if (root_leaf) {
                 Leaf_cache.get(root_pos, Leaf_root);
             } else {
                 Inter_cache.get(root_pos, Inter_root);
             }
         }
-        else {
-            std::ofstream create;
-            create.open(file_name + ".inter", std::ios::out);
-            create.close();
-            Inter_data.open(file_name + ".inter", std::ios::in | std::ios::out | std::ios::binary);
-            create.open(file_name + ".leaf", std::ios::out);
-            create.close();
-            Leaf_data.open(file_name + ".leaf", std::ios::in | std::ios::out | std::ios::binary);
-            root_leaf = true;
-            root_pos = Leaf_root.pos = Leaf_pool.Alloc();
-            Leaf_cache.put(root_pos, Leaf_root);
-        }
     };
 
     ~BPlusTree() {
         Inter_cache.dump();
         Leaf_cache.dump();
-        Inter_data.seekp(0);
-        Inter_data.write(reinterpret_cast<char *>(&root_pos), sizeof(int));
-        Inter_data.write(reinterpret_cast<char *>(&root_leaf), sizeof(bool));
-        Inter_data.close();
-        Leaf_data.close();
+        Inter_data.file.seekp(0, std::ios::end);
+        Inter_data.file.write(reinterpret_cast<char *>(&root_pos), sizeof(int));
+        Inter_data.file.write(reinterpret_cast<char *>(&root_leaf), sizeof(bool));
     }
 
     int Find(const Element<U, T> &now) {
@@ -1012,13 +808,6 @@ public:
         std::cout << "-------\n";
     }
 
-    void debug2() {
-        std::cout << "-------\n";
-        Leaf_cache.debug();
-        std::cout << "-------\n";
-        Inter_cache.debug();
-        std::cout << "-------\n";
-    }
 };
 
 

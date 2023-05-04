@@ -5,6 +5,10 @@
 #ifndef TICKETSYSTEM__STRING_H
 #define TICKETSYSTEM__STRING_H
 
+#include <cstdio>
+#include <string>
+#include <iostream>
+
 template<size_t size>
 class string {
 public:
@@ -64,5 +68,21 @@ std::ostream &operator<<(std::ostream &out, const string<size> &x) {
     out << x.index;
     return out;
 }
+
+class HashString {
+public:
+    template<size_t size>
+    size_t operator () (const string<size> &str) {
+        size_t ret = 0, x = 0;
+        for (int i = 0; i < strlen(str.index); i++) {
+            ret = (ret << 4) + str.index[i];
+            if ((x = ret & 0xF000000L) != 0) {
+                ret ^= (x >> 24);
+                ret &= ~x;
+            }
+        }
+        return (ret & 0x7FFFFFFF);
+    }
+};
 
 #endif //TICKETSYSTEM__STRING_H
