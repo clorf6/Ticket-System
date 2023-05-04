@@ -5,28 +5,27 @@
 #ifndef TICKETSYSTEM__STRING_H
 #define TICKETSYSTEM__STRING_H
 
-const int kMaxIndexLength = 64;
-const size_t kSizeofIndex = 64;
-
+template<size_t size>
 class string {
 public:
-    char index[kMaxIndexLength]{};
+    char index[size]{};
 
     string() {
-        memset(index, 0, kSizeofIndex);
+        memset(index, 0, size);
     }
 
     string(const std::string &Index) {
-        Index.copy(index, kSizeofIndex, 0);
+        Index.copy(index, size, 0);
     }
 
-    string (const char* Index) {
-        memset(index, 0, kSizeofIndex);
+    string(const char *Index) {
+        memset(index, 0, size);
         strcpy(index, Index);
     }
 
-    string(const string &other) {
-        memcpy(index, other.index, kSizeofIndex);
+    template<size_t other_size>
+    string(const string<other_size> &other) {
+        memcpy(index, other.index, other_size);
     }
 
     bool operator==(const string &x) const {
@@ -60,7 +59,8 @@ public:
     ~string() = default;
 };
 
-std::ostream &operator<<(std::ostream &out, const string &x) {
+template<size_t size>
+std::ostream &operator<<(std::ostream &out, const string<size> &x) {
     out << x.index;
     return out;
 }

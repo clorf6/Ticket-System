@@ -94,7 +94,7 @@ public:
         }
         return l;
     }
-    int UpperBound(const string& now) const {
+    int UpperBound(const U& now) const {
         int l = 0, r = count - 1;
         while (l <= r) {
             int mid = (l + r) >> 1;
@@ -103,7 +103,7 @@ public:
         }
         return l;
     }
-    int LowerBound(const string& now) const {
+    int LowerBound(const U& now) const {
         int l = 0, r = count - 1;
         while (l <= r) {
             int mid = (l + r) >> 1;
@@ -421,7 +421,7 @@ public:
         }
     }
 
-    void Find(const string& now) {
+    void Find(const U& now) {
         if (!root_leaf) {
             Inter_now = Inter_root;
             if (!Inter_now.count) {
