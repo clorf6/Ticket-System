@@ -47,6 +47,8 @@ private:
     LinkedHashMap<username, int, HashString> is_login;
 public:
     UserSystem();
+
+
 };
 
 #endif //TICKETSYSTEM_USERSYSTEM_H

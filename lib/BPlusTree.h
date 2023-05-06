@@ -15,6 +15,7 @@
 #include "Pool.h"
 #include "Cache.h"
 #include "FileSystem.h"
+#include "vector.h"
 
 const int kMaxBlockSize = 70;
 const int kMinBlockSize = 25;
@@ -164,11 +165,12 @@ public:
     InterNode<U, T> Inter_root;
     bool root_leaf;
     int root_pos;
-    FileSystem<InterNode<U, T>> Inter_data;
     FileSystem<LeafNode<U, T>> Leaf_data;
-    LRUCache<LeafNode<U, T>> Leaf_cache;
-    LRUCache<InterNode<U, T>> Inter_cache;
+    FileSystem<InterNode<U, T>> Inter_data;
+    LRUCache<LeafNode<U, T>, Hash> Leaf_cache;
+    LRUCache<InterNode<U, T>, Hash> Inter_cache;
     Pool Leaf_pool, Inter_pool;
+    std::vector<T> ans;
 
     const int kSizeofElement = sizeof(Element<U, T>);
     const int kAppendixSize = sizeof(int) + sizeof(bool);
@@ -218,12 +220,10 @@ public:
     }
 
     void Find(const U& now) {
+        ans.clear();
         if (!root_leaf) {
             Inter_now = Inter_root;
-            if (!Inter_now.count) {
-                std::cout << "null";
-                return ;
-            }
+            if (!Inter_now.count) return ;
             int pos;
             while (1) {
                 pos = Inter_now.LowerBound(now);
@@ -235,49 +235,28 @@ public:
             pos = Leaf_now.LowerBound(now);
             bool flag = false;
             for (int i = pos; i < Leaf_now.count; i++) {
-                if (Leaf_now.key[i].index > now) {
-                    if (!flag) {
-                        std::cout << "null";
-                    }
-                    return ;
-                } else if (Leaf_now.key[i].index == now) {
-                    flag = true;
-                    std::cout << Leaf_now.key[i].value << ' ';
+                if (Leaf_now.key[i].index > now) return ;
+                else if (Leaf_now.key[i].index == now) {
+                    ans.push_back(Leaf_now.key[i].value);
                 }
             }
             while (~Leaf_now.suc) {
                 Leaf_cache.get(Leaf_now.suc, Leaf_now);
                 for (int i = 0; i < Leaf_now.count; i++) {
-                    if (Leaf_now.key[i].index > now) {
-                        if (!flag) {
-                            std::cout << "null";
-                        }
-                        return ;
-                    } else if (Leaf_now.key[i].index == now) {
-                        flag = true;
-                        std::cout << Leaf_now.key[i].value << ' ';
+                    if (Leaf_now.key[i].index > now) return ;
+                    else if (Leaf_now.key[i].index == now) {
+                        ans.push_back(Leaf_now.key[i].value);
                     }
                 }
             }
-            if (!flag) {
-                std::cout << "null";
-            }
             return ;
         } else {
-            if (!Leaf_root.count) {
-                std::cout << "null";
-                return ;
-            }
+            if (!Leaf_root.count) return ;
             int pos = Leaf_root.LowerBound(now);
-            if (pos >= Leaf_root.count || Leaf_root.key[pos].index != now) {
-                std::cout << "null";
-                return ;
-            }
+            if (pos >= Leaf_root.count || Leaf_root.key[pos].index != now) return ;
             for (int i = pos; i < Leaf_root.count; i++) {
-                if (Leaf_root.key[i].index != now) {
-                    return ;
-                }
-                std::cout << Leaf_root.key[i].value << ' ';
+                if (Leaf_root.key[i].index != now) return ;
+                ans.push_back(Leaf_root.key[i].value);
             }
             return ;
         }

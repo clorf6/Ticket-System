@@ -21,7 +21,13 @@ int main() {
                 std::string s;
                 std::cin >> s;
                 bpt.Find(s);
-                std::cout << '\n';
+                if (bpt.ans.empty()) std::cout << "null\n";
+                else {
+                    for (int i = 0; i < bpt.ans.size(); i++) {
+                        std::cout << bpt.ans[i] << ' ';
+                    }
+                    std::cout << '\n';
+                }
             } else if (opt == "delete") {
                 std::string s;
                 int data;

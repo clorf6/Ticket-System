@@ -14,13 +14,13 @@
 
 const int kCacheCapacity = 3000;
 
-template<class T>
+template<class T, class Hash>
 class LRUCache {
 public:
     FileSystem<T>* file;
     int capacity;
     list<std::pair<int, T>> cache;
-    LinkedHashMap<int, typename list<std::pair<int, T>>::iterator> map;
+    LinkedHashMap<int, typename list<std::pair<int, T>>::iterator, Hash> map;
     LRUCache(FileSystem<T>* _file, const int& Capacity = kCacheCapacity) : file(_file), capacity(Capacity) {};
 
     void dump() {

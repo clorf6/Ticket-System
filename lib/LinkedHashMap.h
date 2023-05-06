@@ -11,7 +11,7 @@
 
 const size_t kMapSize = 3000;
 
-template<class Key, class T, class Hash = std::hash<int>>
+template<class Key, class T, class Hash>
 class LinkedHashMap {
 friend class List;
 private:
