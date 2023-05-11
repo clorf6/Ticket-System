@@ -16,7 +16,7 @@ int main() {
                 std::string s;
                 int data;
                 std::cin >> s >> data;
-                bpt.Insert(Element<Index, int>{data, s});
+                bpt.Insert(Element<Index, int>{s, data});
             } else if (opt == "find") {
                 std::string s;
                 std::cin >> s;
@@ -32,7 +32,7 @@ int main() {
                 std::string s;
                 int data;
                 std::cin >> s >> data;
-                bpt.Erase(Element<Index, int>{data, s});
+                bpt.Erase(Element<Index, int>{s, data});
             } else if(opt == "debug") {
                 bpt.debug();
             }

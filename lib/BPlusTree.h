@@ -23,11 +23,11 @@ const int kMinBlockSize = 25;
 template<class U, class T>
 class Element {
 public:
-    T value;
     U index;
+    T value;
     Element() {}
 
-    Element(T Value, U Index) : value(Value), index(Index) {};
+    Element(U Index, T Value) : value(Value), index(Index) {};
     Element(const Element<U, T>& other) {
         value = other.value;
         index = other.index;

@@ -60,6 +60,10 @@ public:
         return index;
     }
 
+    bool empty() const {
+        return !strlen(index);
+    }
+
     ~string() = default;
 };
 
@@ -72,7 +76,7 @@ std::ostream &operator<<(std::ostream &out, const string<size> &x) {
 class HashString {
 public:
     template<size_t size>
-    size_t operator () (const string<size> &str) {
+    size_t operator () (const string<size> &str) const {
         size_t ret = 0, x = 0;
         for (int i = 0; i < strlen(str.index); i++) {
             ret = (ret << 4) + str.index[i];

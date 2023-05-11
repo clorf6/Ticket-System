@@ -28,10 +28,10 @@ struct User {
     mailAddr MailAddr;
     int Privilege;
 
-    User(const std::string &_UserName = "",
-         const std::string &_PassWord = "",
-         const std::string &_Name = "",
-         const std::string &_MailAddr = "",
+    User(const username &_UserName = "",
+         const password &_PassWord = "",
+         const name &_Name = "",
+         const mailAddr &_MailAddr = "",
          const int &_Privilege = 0) :
          UserName(_UserName), PassWord(_PassWord),
          Name(_Name), MailAddr(_MailAddr), Privilege(_Privilege) {};
@@ -42,13 +42,23 @@ const size_t kSizeofUser = sizeof(User);
 
 class UserSystem {
 private:
-
     BPlusTree<username, int> user_pos;
     LinkedHashMap<username, int, HashString> is_login;
+    FileSystem<User> user_data;
 public:
     UserSystem();
 
+    void AddUser(const username &, const username &, const password &,
+                 const name &, const mailAddr &, const int &);
 
+    void LoginUser(const username &, const password &);
+
+    void LogoutUser(const username &);
+
+    void QueryProfileUser(const username &, const username &);
+
+    void ModifyProfileUser(const username &, const username &, const password &,
+                           const name &, const mailAddr &, const int &);
 };
 
 #endif //TICKETSYSTEM_USERSYSTEM_H

@@ -43,6 +43,11 @@ public:
         file.seekp(0, std::ios::end);
         return !file.tellp();
     }
+
+    int size() {
+        file.seekp(0, std::ios::end);
+        return file.tellp() / kSizeofData;
+    }
 };
 
 #endif //TICKETSYSTEM_FILESYSTEM_H
