@@ -233,7 +233,6 @@ public:
             }
             Leaf_cache.get(Inter_now.child[pos], Leaf_now);
             pos = Leaf_now.LowerBound(now);
-            bool flag = false;
             for (int i = pos; i < Leaf_now.count; i++) {
                 if (Leaf_now.key[i].index > now) return ;
                 else if (Leaf_now.key[i].index == now) {
