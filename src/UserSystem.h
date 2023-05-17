@@ -28,11 +28,13 @@ struct User {
     mailAddr MailAddr;
     int Privilege;
 
-    User(const username &_UserName = "",
-         const password &_PassWord = "",
-         const name &_Name = "",
-         const mailAddr &_MailAddr = "",
-         const int &_Privilege = 0) :
+    User() = default;
+
+    User(const username &_UserName,
+         const password &_PassWord,
+         const name &_Name,
+         const mailAddr &_MailAddr,
+         const int &_Privilege) :
          UserName(_UserName), PassWord(_PassWord),
          Name(_Name), MailAddr(_MailAddr), Privilege(_Privilege) {};
 };

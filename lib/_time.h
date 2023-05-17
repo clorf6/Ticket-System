@@ -17,9 +17,9 @@ class date {
 public:
     int month, day;
 
-    date() {};
+    date() = default;
 
-    date(const int& Month = 1, const int& Day = 1) : month(Month), day(Day) {};
+    date(const int& Month, const int& Day) : month(Month), day(Day) {};
 
     date(const std::string& Date) {
         month = std::stoi(Date.substr(0, 2));
@@ -149,8 +149,8 @@ public:
 
     time() = default;
 
-    time(const int& Hour = 0, const int& Minute = 0,
-         const int& Month = 1, const int& Day = 1) :
+    time(const int& Hour, const int& Minute,
+         const int& Month, const int& Day) :
          hour(Hour), minute(Minute), now(Month, Day) {};
 
     time(const time& other) : hour(other.hour), minute(other.minute),
@@ -289,7 +289,7 @@ public:
 
 };
 
-std::ostream& operator << (std::ostream &out, const time &x) {
+std::ostream& operator << (std::ostream &out, const class time &x) {
     out << x.now << ' ';
     if (x.hour < 10) out << '0';
     out << x.hour << ':';

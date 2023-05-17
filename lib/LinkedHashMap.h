@@ -87,6 +87,18 @@ public:
             now = now->nex;
         }
     }
+
+    void clear() {
+        for (int i = 0; i < siz; i++) {
+            node *now = head[i], *nex;
+            while (now) {
+                nex = now->nex;
+                delete now;
+                now = nex;
+            }
+            head[i] = nullptr;
+        }
+    }
 };
 
 #endif //TICKETSYSTEM_LINKEDHASHMAP_H

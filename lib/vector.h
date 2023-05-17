@@ -579,6 +579,12 @@ namespace sjtu {
             data[--_size].~T();
             if (_size < (_capacity >> 1)) halfSpace();
         }
+
+        void swap(vector<T> &other) {
+            std::swap(_size, other._size);
+            std::swap(_capacity, other._capacity);
+            std::swap(data, other.data);
+        }
     };
 
 

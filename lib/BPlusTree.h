@@ -25,7 +25,7 @@ class Element {
 public:
     U index;
     T value;
-    Element() {}
+    Element() = default;
 
     Element(U Index, T Value) : value(Value), index(Index) {};
     Element(const Element<U, T>& other) {
@@ -170,7 +170,7 @@ public:
     LRUCache<LeafNode<U, T>, Hash> Leaf_cache;
     LRUCache<InterNode<U, T>, Hash> Inter_cache;
     Pool Leaf_pool, Inter_pool;
-    std::vector<T> ans;
+    sjtu::vector<T> ans;
 
     const int kSizeofElement = sizeof(Element<U, T>);
     const int kAppendixSize = sizeof(int) + sizeof(bool);
