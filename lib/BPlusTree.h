@@ -155,6 +155,12 @@ public:
     }
     LeafNode<U, T>(const LeafNode<U, T> &other) :
             Node<U, T>(other), pre(other.pre), suc(other.suc) {};
+    void clear() {
+        pre = suc = this->pos = -1;
+        this->is_leaf = true;
+        this->count = 0;
+        this->fa = this->pre = this->suc = -1;
+    }
 };
 
 
@@ -721,70 +727,83 @@ public:
         return ;
     }
 
-    void printLeaf(int pos) {
-        LeafNode<U, T> now;
-        Leaf_cache.get(pos, now);
-        printLeaf(now);
+    void clear() {
+        Leaf_pool.clear();
+        Inter_pool.clear();
+        Leaf_cache.clear();
+        Inter_cache.clear();
+        Leaf_data.clear();
+        Inter_data.clear();
+        Leaf_root.clear();
+        root_leaf = true;
+        root_pos = Leaf_root.pos = Leaf_pool.Alloc();
+        Leaf_cache.put(root_pos, Leaf_root);
     }
 
-    static void printLeaf(LeafNode<U, T> &now) {
-        std::cout << "Leaf " << now.is_leaf << ' ' << now.count << ' ' << now.fa << ' ' << now.pos << '\n';
-        for (int i = 0; i < now.count; i++) {
-            std::cout << "i " << i << " key " << now.key[i].index << ' ' << now.key[i].value << '\n';
-        }
-        return ;
-    }
-
-    void print(InterNode<U, T> &now) {
-        std::cout << "Inter " << now.is_leaf << ' ' << now.count << ' ' << now.fa << ' ' << now.pos << '\n';
-        for (int i = 0; i < now.count; i++) {
-            std::cout << "i " << i << " key " << now.key[i].index << ' ' << now.key[i].value << '\n';
-        }
-        for (int i = 0; i <= now.count; i++) {
-            std::cout << "i " << i << " " << now.child[i] << " nowpos " << now.pos << '\n';
-            if (now.child_leaf[i] && (~now.child[i])) {
-                LeafNode<U, T> Leaf;
-                Leaf_cache.get(now.child[i], Leaf);
-                printLeaf(Leaf);
-            }
-            else if (~now.child[i]) {
-                InterNode<U, T> Inter;
-                Inter_cache.get(now.child[i], Inter);
-                print(Inter);
-            }
-        }
-        return ;
-    }
-
-    void print(int pos) {
-        InterNode<U, T> now;
-        Inter_cache.get(pos, now);
-        print(now);
-    }
-
-    void printInter(int pos) {
-        InterNode<U, T> now;
-        Inter_cache.get(pos, now);
-        printInter(now);
-    }
-
-    static void printInter(InterNode<U, T> &now) {
-        std::cout << "Inter " << now.is_leaf << ' ' << now.count << ' ' << now.fa << ' ' << now.pos << '\n';
-        for (int i = 0; i < now.count; i++) {
-            std::cout << "i " << i << " key " << now.key[i].index << ' ' << now.key[i].value << '\n';
-        }
-        for (int i = 0; i <= now.count; i++) {
-            printf("i %d %d %d\n",i, now.child[i], now.child_leaf[i]);
-        }
-    }
-
-    void debug() {
-        std::cout << "-------\n";
-        std::cout << "Inter_count " << Inter_pool.Node_count << " Leaf_count " << Leaf_pool.Node_count << '\n';
-        if (root_leaf) printLeaf(Leaf_root);
-        else print(Inter_root);
-        std::cout << "-------\n";
-    }
+//    void printLeaf(int pos) {
+//        LeafNode<U, T> now;
+//        Leaf_cache.get(pos, now);
+//        printLeaf(now);
+//    }
+//
+//    static void printLeaf(LeafNode<U, T> &now) {
+//        std::cout << "Leaf " << now.is_leaf << ' ' << now.count << ' ' << now.fa << ' ' << now.pos << '\n';
+//        for (int i = 0; i < now.count; i++) {
+//            std::cout << "i " << i << " key " << now.key[i].index << ' ' << now.key[i].value << '\n';
+//        }
+//        return ;
+//    }
+//
+//    void print(InterNode<U, T> &now) {
+//        std::cout << "Inter " << now.is_leaf << ' ' << now.count << ' ' << now.fa << ' ' << now.pos << '\n';
+//        for (int i = 0; i < now.count; i++) {
+//            std::cout << "i " << i << " key " << now.key[i].index << ' ' << now.key[i].value << '\n';
+//        }
+//        for (int i = 0; i <= now.count; i++) {
+//            std::cout << "i " << i << " " << now.child[i] << " nowpos " << now.pos << '\n';
+//            if (now.child_leaf[i] && (~now.child[i])) {
+//                LeafNode<U, T> Leaf;
+//                Leaf_cache.get(now.child[i], Leaf);
+//                printLeaf(Leaf);
+//            }
+//            else if (~now.child[i]) {
+//                InterNode<U, T> Inter;
+//                Inter_cache.get(now.child[i], Inter);
+//                print(Inter);
+//            }
+//        }
+//        return ;
+//    }
+//
+//    void print(int pos) {
+//        InterNode<U, T> now;
+//        Inter_cache.get(pos, now);
+//        print(now);
+//    }
+//
+//    void printInter(int pos) {
+//        InterNode<U, T> now;
+//        Inter_cache.get(pos, now);
+//        printInter(now);
+//    }
+//
+//    static void printInter(InterNode<U, T> &now) {
+//        std::cout << "Inter " << now.is_leaf << ' ' << now.count << ' ' << now.fa << ' ' << now.pos << '\n';
+//        for (int i = 0; i < now.count; i++) {
+//            std::cout << "i " << i << " key " << now.key[i].index << ' ' << now.key[i].value << '\n';
+//        }
+//        for (int i = 0; i <= now.count; i++) {
+//            printf("i %d %d %d\n",i, now.child[i], now.child_leaf[i]);
+//        }
+//    }
+//
+//    void debug() {
+//        std::cout << "-------\n";
+//        std::cout << "Inter_count " << Inter_pool.Node_count << " Leaf_count " << Leaf_pool.Node_count << '\n';
+//        if (root_leaf) printLeaf(Leaf_root);
+//        else print(Inter_root);
+//        std::cout << "-------\n";
+//    }
 
 };
 

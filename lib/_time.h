@@ -11,7 +11,6 @@
 
 const int day_num[13] = {0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
 const int day_sum[13] = {0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334, 365};
-std::string str;
 
 class date {
 public:
@@ -120,27 +119,19 @@ public:
         return sum1 - sum2;
     }
 
-    operator std::string() const {
-        str.clear();
-        if (month < 10) str += '0';
-        str += std::to_string(month);
-        str += '-';
-        if (day < 10) str += '0';
-        str += std::to_string(day);
-        return str;
+    void clear() {
+        month = day = 0;
     }
 
-    friend std::ostream& operator << (std::ostream &, const date &);
+    friend std::ostream& operator << (std::ostream &out, const date &x) {
+        if (x.month < 10) out << '0';
+        out << x.month << '-';
+        if (x.day < 10) out << '0';
+        out << x.day;
+        return out;
+    }
 
 };
-
-std::ostream& operator << (std::ostream &out, const date &x) {
-    if (x.month < 10) out << '0';
-    out << x.month << '-';
-    if (x.day < 10) out << '0';
-    out << x.day;
-    return out;
-}
 
 class time {
 public:
@@ -152,6 +143,11 @@ public:
     time(const int& Hour, const int& Minute,
          const int& Month, const int& Day) :
          hour(Hour), minute(Minute), now(Month, Day) {};
+
+    time(const std::string& Time) {
+        hour = std::stoi(Time.substr(0, 2));
+        minute = std::stoi(Time.substr(3, 2));
+    }
 
     time(const time& other) : hour(other.hour), minute(other.minute),
     now(other.now) {};
@@ -285,17 +281,20 @@ public:
         return ret;
     }
 
-    friend std::ostream& operator << (std::ostream &, const time &);
+    void clear() {
+        hour = minute = 0;
+        now.clear();
+    }
+
+    friend std::ostream& operator << (std::ostream &out, const class time &x) {
+        out << x.now << ' ';
+        if (x.hour < 10) out << '0';
+        out << x.hour << ':';
+        if (x.minute < 10) out << '0';
+        out << x.minute;
+        return out;
+    }
 
 };
-
-std::ostream& operator << (std::ostream &out, const class time &x) {
-    out << x.now << ' ';
-    if (x.hour < 10) out << '0';
-    out << x.hour << ':';
-    if (x.minute < 10) out << '0';
-    out << x.minute;
-    return out;
-}
 
 #endif //TICKETSYSTEM__TIME_H

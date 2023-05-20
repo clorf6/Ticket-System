@@ -45,9 +45,10 @@ const size_t kSizeofUser = sizeof(User);
 class UserSystem {
 private:
     BPlusTree<username, int> user_pos;
-    LinkedHashMap<username, int, HashString> is_login;
     FileSystem<User> user_data;
 public:
+    LinkedHashMap<username, int, HashString> is_login;
+
     UserSystem();
 
     void AddUser(const username &, const username &, const password &,
@@ -61,6 +62,8 @@ public:
 
     void ModifyProfileUser(const username &, const username &, const password &,
                            const name &, const mailAddr &, const int &);
+
+    void Clear();
 };
 
 #endif //TICKETSYSTEM_USERSYSTEM_H

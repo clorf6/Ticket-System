@@ -80,4 +80,10 @@ void UserSystem::ModifyProfileUser(const username &Cur_username, const username 
     std::cout << now_user.UserName << ' ' << now_user.Name << ' ' << now_user.MailAddr << ' ' << now_user.Privilege << '\n';
 }
 
+void UserSystem::Clear() {
+    user_pos.clear();
+    user_data.clear();
+    is_login.clear();
+}
+
 #endif //TICKETSYSTEM_USERSYSTEM_CPP

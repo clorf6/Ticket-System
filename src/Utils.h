@@ -11,19 +11,23 @@
 #include <cstdio>
 #include <functional>
 #include "TrainSystem.h"
+#include "Exception.h"
+#include "vector.h"
+#include "_time.h"
 
-template<class T, class comp = std::less<T>>
-void sort(sjtu::vector<T>& data, int l, int r, const comp& cmp) {
-    if (l >= r) return ;
-    T pivot = data[(l + r) >> 1];
-    int i = l - 1, j = r + 1;
-    while (i < j) {
-        do ++i; while (cmp(data[i], pivot));
-        do --j; while (cmp(pivot, data[j]));
-        if (i < j) std::swap(data[i], data[j]);
-    }
-    sort(data, l, j, cmp);
-    sort(data, j + 1, r, cmp);
-}
+extern sjtu::vector<std::string> ops;
+static std::string now_op;
+
+void DivideOperation(const std::string &);
+
+void DivideStation(station *, const std::string &);
+
+void DivideNumber(int *, const std::string &);
+
+void GetDate(date &, const std::string &);
+
+void GetTime(class time &, const std::string &);
+
+void GetSaleDate(date &, date &, const std::string &);
 
 #endif //TICKETSYSTEM_UTILS_H

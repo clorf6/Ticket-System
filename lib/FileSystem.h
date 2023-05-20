@@ -14,9 +14,10 @@ template<class T>
 class FileSystem {
 public:
     std::fstream file;
+    const std::string file_name;
     const int kSizeofData = sizeof(T);
 
-    FileSystem(const std::string &file_name) {
+    FileSystem(const std::string &_file_name) : file_name(_file_name) {
         file.open(file_name, std::ios::in | std::ios::out | std::ios::binary);
         if (!file.is_open()) {
             file.open(file_name, std::ios::out);
@@ -47,6 +48,14 @@ public:
     int size() {
         file.seekp(0, std::ios::end);
         return file.tellp() / kSizeofData;
+    }
+
+    void clear() {
+        file.close();
+        std::ofstream clean;
+        clean.open(file_name, std::ios::trunc);
+        clean.close();
+        file.open(file_name, std::ios::in | std::ios::out | std::ios::binary);
     }
 };
 

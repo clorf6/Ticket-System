@@ -23,13 +23,22 @@ public:
     }
 
     string(const char *Index) {
-        memset(index, 0, size);
         strcpy(index, Index);
     }
 
     template<size_t other_size>
     string(const string<other_size> &other) {
         memcpy(index, other.index, other_size);
+    }
+
+    string& operator = (const std::string& other) {
+        other.copy(index, size, 0);
+        return (*this);
+    }
+
+    string& operator = (const char *Index) {
+        strcpy(index, Index);
+        return (*this);
     }
 
     bool operator==(const string &x) const {
@@ -62,6 +71,10 @@ public:
 
     bool empty() const {
         return !strlen(index);
+    }
+
+    void clear() {
+        memset(index, 0, size);
     }
 
     ~string() = default;

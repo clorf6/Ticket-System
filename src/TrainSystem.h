@@ -11,7 +11,6 @@
 #include <cstdio>
 #include <fstream>
 #include "BPlusTree.h"
-#include "Utils.h"
 #include "vector.h"
 #include "Exception.h"
 #include "LinkedHashMap.h"
@@ -23,6 +22,20 @@ using station = string<41>;
 
 const int kMaxStationNum = 100;
 const int INF = 2e9;
+
+template<class T, class comp = std::less<T>>
+void sort(sjtu::vector<T>& data, int l, int r, const comp& cmp) {
+    if (l >= r) return ;
+    T pivot = data[(l + r) >> 1];
+    int i = l - 1, j = r + 1;
+    while (i < j) {
+        do ++i; while (cmp(data[i], pivot));
+        do --j; while (cmp(pivot, data[j]));
+        if (i < j) std::swap(data[i], data[j]);
+    }
+    sort(data, l, j, cmp);
+    sort(data, j + 1, r, cmp);
+}
 
 struct Train {
     bool Release;
@@ -192,14 +205,14 @@ extern sjtu::vector<Direct_Ticket> ret;
 extern Transfer_Ticket best, now_transfer;
 
 class TrainSystem {
-private:
+public:
     BPlusTree<trainID, int> train_pos;
     FileSystem<Train> train_data;
     BPlusTree<std::pair<trainID, int>, int> ticket_pos;
     FileSystem<Ticket> ticket_data;
     BPlusTree<station, Station> station_data;
     LinkedHashMap<station, int, HashString> transfer;
-public:
+
     TrainSystem();
 
     void AddTrain(const trainID &, const int &, const int &, station *,
@@ -212,9 +225,11 @@ public:
 
     void QueryTrain(const trainID &, const date &);
 
-    void QueryTicket(const station &, const station &,const date &, bool);
+    void QueryTicket(const station &, const station &,const date &, const bool &);
 
-    void QueryTransfer(const station &, const station &,const date &, bool);
+    void QueryTransfer(const station &, const station &,const date &, const bool &);
+
+    void Clear();
 };
 
 #endif //TICKETSYSTEM_TRAINSYSTEM_H

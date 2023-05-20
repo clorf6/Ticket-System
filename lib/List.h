@@ -40,6 +40,15 @@ public:
         head = tail = nullptr;
     }
 
+    void clear() {
+        node *now = head->nex, *nex = nullptr;
+        while (now != tail) {
+            nex = now->nex;
+            delete now;
+            now = nex;
+        }
+    }
+
     class iterator {
         friend class list;
         private:

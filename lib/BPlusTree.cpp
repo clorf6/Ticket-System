@@ -33,8 +33,6 @@ int main() {
                 int data;
                 std::cin >> s >> data;
                 bpt.Erase(Element<Index, int>{s, data});
-            } else if(opt == "debug") {
-                bpt.debug();
             }
         }
     }

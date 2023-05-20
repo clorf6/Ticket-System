@@ -299,16 +299,14 @@ namespace sjtu {
             _size = 0;
             _capacity = 4;
             data = (T *) malloc(sizeof(T) * _capacity);
-            memset(data, 0, sizeof(T) * _capacity);
         }
 
         vector(const vector &other) {
             _size = other._size;
             _capacity = other._capacity;
             data = (T *) malloc(sizeof(T) * _capacity);
-            memset(data, 0, sizeof(T) * _capacity);
             for (int i = 0; i < _size; i++) {
-                data[i] = other.data[i];
+                new (data + i) T(other.data[i]);
             }
         }
 
@@ -330,9 +328,8 @@ namespace sjtu {
         void doubleSpace() {
             _capacity <<= 1;
             T *new_data = (T *) malloc(sizeof(T) * _capacity);
-            memset(new_data, 0, sizeof(T) * _capacity);
             for (int i = 0; i < _size; i++) {
-                new_data[i] = data[i];
+                new (new_data + i) T(data[i]);
                 data[i].~T();
             }
             free(data);
@@ -342,9 +339,8 @@ namespace sjtu {
         void halfSpace() {
             _capacity >>= 1;
             T *new_data = (T *) malloc(sizeof(T) * _capacity);
-            memset(new_data, 0, sizeof(T) * _capacity);
             for (int i = 0; i < _size; i++) {
-                new_data[i] = data[i];
+                new (new_data + i) T(data[i]);
                 data[i].~T();
             }
             free(data);
@@ -364,9 +360,8 @@ namespace sjtu {
                 _size = other._size;
                 _capacity = other._capacity;
                 data = (T *) malloc(sizeof(T) * _capacity);
-                memset(data, 0, sizeof(T) * _capacity);
                 for (int i = 0; i < _size; i++) {
-                    data[i] = other.data[i];
+                    new (data + i) T(other.data[i]);
                 }
             }
             return (*this);

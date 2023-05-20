@@ -53,6 +53,12 @@ public:
     void Recycle(int& ret) {
         pool.push_back(ret);
     }
+
+    void clear() {
+        Pool_count = Node_count = 0;
+        pool.clear();
+        Pool_data.clear();
+    }
 };
 
 #endif //TICKETSYSTEM_POOL_H

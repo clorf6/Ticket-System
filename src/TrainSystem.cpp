@@ -31,6 +31,7 @@ void TrainSystem::AddTrain(const trainID& _TrainID, const int& _StationNum, cons
     int train_count = train_data.size();
     train_data.Write(++train_count, new_train);
     train_pos.Insert(Element<trainID, int>{_TrainID, train_count});
+    std::cout << "0\n";
 }
 
 void TrainSystem::DeleteTrain(const trainID &_TrainID) {
@@ -39,6 +40,7 @@ void TrainSystem::DeleteTrain(const trainID &_TrainID) {
     train_data.Read(train_pos.ans[0], now_train);
     if (now_train.Release) throw Exception("Train already released");
     train_pos.Erase(Element<trainID, int>{_TrainID, train_pos.ans[0]});
+    std::cout << "0\n";
 }
 
 void TrainSystem::ReleaseTrain(const trainID &_TrainID) {
@@ -60,6 +62,7 @@ void TrainSystem::ReleaseTrain(const trainID &_TrainID) {
         Station new_station(_TrainID, pos, i);
         station_data.Insert(Element<station, Station>{now_train.Stations[i], new_station});
     }
+    std::cout << "0\n";
 }
 
 void TrainSystem::QueryTrain(const trainID &_TrainID, const date &Date) {
@@ -93,7 +96,7 @@ void TrainSystem::QueryTrain(const trainID &_TrainID, const date &Date) {
     }
 }
 
-void TrainSystem::QueryTicket(const station &StartStation, const station &EndStation, const date &Date, bool op) {
+void TrainSystem::QueryTicket(const station &StartStation, const station &EndStation, const date &Date, const bool &op) {
     station_data.Find(StartStation);
     StartStations.swap(station_data.ans);
     station_data.Find(EndStation);
@@ -127,7 +130,7 @@ void TrainSystem::QueryTicket(const station &StartStation, const station &EndSta
     }
 }
 
-void TrainSystem::QueryTransfer(const station &StartStation, const station &EndStation, const date &Date, bool op) {
+void TrainSystem::QueryTransfer(const station &StartStation, const station &EndStation, const date &Date, const bool &op) {
     bool flag = false;
     station_data.Find(StartStation);
     StartStations.swap(station_data.ans);
@@ -192,6 +195,15 @@ void TrainSystem::QueryTransfer(const station &StartStation, const station &EndS
         std::cout << best.ticket2.TrainID << ' ' << best.Transfer_station << ' ' << best.ticket2.DepartureTime << " -> " << EndStation
                   << ' ' << best.ticket2.ArrivalTime << ' ' << best.ticket2.Price << ' ' << best.ticket2.Seat << '\n';
     }
+}
+
+void TrainSystem::Clear() {
+    train_pos.clear();
+    train_data.clear();
+    ticket_pos.clear();
+    ticket_data.clear();
+    station_data.clear();
+    transfer.clear();
 }
 
 #endif //TICKETSYSTEM_TRAINSYSTEM_CPP
