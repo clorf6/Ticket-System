@@ -156,7 +156,7 @@ void TrainSystem::QueryTransfer(const station &StartStation, const station &EndS
                 transfer_nex_time = nex_train.StartTime + nex_train.DepartureTimes[k];
                 int delta_transfer = transfer_now_time.now - transfer_nex_time.now;
                 if (delta_transfer < 0) delta_transfer = 0;
-                transfer_nex_time.now = transfer_now_time.now;
+                else transfer_nex_time.now = transfer_now_time.now;
                 if (transfer_nex_time < transfer_now_time) {
                     ++delta_transfer;
                     ++transfer_nex_time.now;
@@ -173,7 +173,7 @@ void TrainSystem::QueryTransfer(const station &StartStation, const station &EndS
                                       now_train.Prices[Mid] - now_train.Prices[L], now_ticket.Query(L, Mid), fir_time),
                         Direct_Ticket(nex_train.TrainID, nex_time, transfer_nex_time,
                                       nex_train.Prices[R] - nex_train.Prices[k], nex_ticket.Query(k, R), sec_time),
-                        transfer_nex_time - transfer_now_time, now_train.Stations[k]
+                        transfer_nex_time - transfer_now_time, now_train.Stations[Mid]
                         );
                 if (!flag) {
                     best = now_transfer;
