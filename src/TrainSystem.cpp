@@ -188,7 +188,7 @@ void TrainSystem::QueryTransfer(const station &StartStation, const station &EndS
             }
         }
     }
-    if (flag) std::cout << "0\n";
+    if (!flag) std::cout << "0\n";
     else {
         std::cout << best.ticket1.TrainID << ' ' << StartStation << ' ' << best.ticket1.DepartureTime << " -> " << best.Transfer_station
         << ' ' << best.ticket1.ArrivalTime << ' ' << best.ticket1.Price << ' ' << best.ticket1.Seat << '\n';
