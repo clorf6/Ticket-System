@@ -19,24 +19,29 @@ public:
     }
 
     string(const std::string &Index) {
+        memset(index, 0, size);
         strcpy(index, Index.c_str());
     }
 
     string(const char *Index) {
+        memset(index, 0, size);
         strcpy(index, Index);
     }
 
     template<size_t other_size>
     string(const string<other_size> &other) {
+        memset(index, 0, size);
         strcpy(index, other.index);
     }
 
     string& operator = (const std::string& other) {
-        other.copy(index, size, 0);
+        memset(index, 0, size);
+        strcpy(index, other.c_str());
         return (*this);
     }
 
     string& operator = (const char *Index) {
+        memset(index, 0, size);
         strcpy(index, Index);
         return (*this);
     }
