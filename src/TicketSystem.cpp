@@ -318,7 +318,8 @@ void TicketSystem::Run() {
                 break;
             } else throw Exception("Invalid operation");
         } catch (Exception &error) {
-            std::cout << error.what() << '\n';
+            //std::cout << error.what() << '\n';
+            std::cout << "-1\n";
             continue;
         }
     }
