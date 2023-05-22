@@ -66,7 +66,7 @@ struct Train {
             now_time += TravelTimes[i];
             ArrivalTimes[i + 1] = now_time;
             now_time += StopoverTimes[i];
-            DepartureTimes[i + 1] = i;
+            DepartureTimes[i + 1] = now_time;
         }
     }
 };
@@ -230,6 +230,8 @@ public:
     void QueryTransfer(const station &, const station &,const date &, const bool &);
 
     void Clear();
+
+    ~TrainSystem() = default;
 };
 
 #endif //TICKETSYSTEM_TRAINSYSTEM_H

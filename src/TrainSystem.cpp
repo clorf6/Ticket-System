@@ -104,7 +104,7 @@ void TrainSystem::QueryTicket(const station &StartStation, const station &EndSta
     int l = 0, r = 0, tim;
     while (l < StartStations.size()) {
         while (r < station_data.ans.size() && station_data.ans[r].TrainID < StartStations[l].TrainID) ++r;
-        if (r == station_data.ans.size()) break;
+        if (r >= station_data.ans.size()) break;
         if (StartStations[l].TrainID == station_data.ans[r].TrainID) {
             int &L = StartStations[l].Num, &R = station_data.ans[r].Num;
             if (L >= R) continue;
@@ -120,6 +120,7 @@ void TrainSystem::QueryTicket(const station &StartStation, const station &EndSta
             ret.push_back(Direct_Ticket(StartStations[l].TrainID, nex_time, now_time,
                           now_train.Prices[R] - now_train.Prices[L], now_ticket.Query(L, R), tim));
         }
+        ++l;
     }
     if (!op) sort(ret, 0, ret.size() - 1, compTime);
     else sort(ret, 0, ret.size() - 1, compCost);

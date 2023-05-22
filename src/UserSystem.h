@@ -64,6 +64,8 @@ public:
                            const name &, const mailAddr &, const int &);
 
     void Clear();
+
+    ~UserSystem() = default;
 };
 
 #endif //TICKETSYSTEM_USERSYSTEM_H

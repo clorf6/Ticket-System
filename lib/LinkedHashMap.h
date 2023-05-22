@@ -26,7 +26,7 @@ private:
     node** head;
     size_t siz;
 public:
-    LinkedHashMap(const size_t& _siz = kMapSize) : siz(kMapSize) {
+    LinkedHashMap(const size_t& _siz = kMapSize) : siz(_siz) {
         head = new node* [_siz];
         for (int i = 0; i < _siz; i++) {
             head[i] = nullptr;
@@ -41,14 +41,14 @@ public:
                 delete now;
                 now = nex;
             }
-            now = nullptr;
+            head[i] = nullptr;
         }
         delete []head;
     }
 
 
     T& operator[](const Key& _key) {
-        unsigned long long hash_val = hash(_key) % kMapSize;
+        unsigned long long hash_val = hash(_key) % siz;
         node* now = head[hash_val];
         while (now) {
             if (now->key == _key) {
@@ -64,7 +64,7 @@ public:
     }
 
     bool find(const Key& key) const {
-        unsigned long long hash_val = hash(key) % kMapSize;
+        unsigned long long hash_val = hash(key) % siz;
         node* now = head[hash_val];
         while (now) {
             if (now->key == key) return true;
@@ -74,7 +74,7 @@ public:
     }
 
     void erase(const Key& key) {
-        unsigned long long hash_val = hash(key) % kMapSize;
+        unsigned long long hash_val = hash(key) % siz;
         node* now = head[hash_val], *pre = nullptr;
         while (now) {
             if (now->key == key) {

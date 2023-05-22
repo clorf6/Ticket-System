@@ -110,6 +110,8 @@ public:
     void Clean();
 
     void Run();
+
+    ~TicketSystem() = default;
 };
 
 #endif //TICKETSYSTEM_TICKETSYSTEM_H

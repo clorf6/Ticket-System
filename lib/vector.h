@@ -489,9 +489,9 @@ namespace sjtu {
                 doubleSpace();
             }
             for (int i = _size; i > pos.delta; i--) {
-                data[i] = data[i - 1];
+                new (data + i) T(data[i - 1]);
             }
-            data[pos.delta] = value;
+            new (data + pos.delta) T(value);
             pos.head = data;
             return pos;
         }
@@ -511,9 +511,9 @@ namespace sjtu {
                 doubleSpace();
             }
             for (int i = _size; i > ind; i--) {
-                data[i] = data[i - 1];
+                new (data + i) T(data[i - 1]);
             }
-            data[ind] = value;
+            new (data + ind) T(value);
             return iterator(data, ind);
         }
 
@@ -560,7 +560,7 @@ namespace sjtu {
             if (_size == _capacity) {
                 doubleSpace();
             }
-            data[_size - 1] = value;
+            new (data + _size - 1) T(value);
         }
 
         /**

@@ -22,14 +22,12 @@ public:
     list<std::pair<int, T>> cache;
     LinkedHashMap<int, typename list<std::pair<int, T>>::iterator, Hash> map;
     LRUCache(FileSystem<T>* _file, const int& Capacity = kCacheCapacity / sizeof(T)) :
-    file(_file), capacity(Capacity), map(capacity << 1) {};
+    file(_file), capacity(Capacity), map(Capacity << 1) {};
 
     void dump() {
         typename list<std::pair<int, T>>::iterator it = cache.front();
-        std::pair<int, T> now;
         while (it != cache.end()) {
-            now = *it;
-            file->Write(now.first, now.second);
+            file->Write((*it).first, (*it).second);
             it++;
         }
     }
@@ -64,6 +62,8 @@ public:
         cache.clear();
         map.clear();
     }
+
+    ~LRUCache() = default;
 };
 
 #endif //TICKETSYSTEM_CACHE_H

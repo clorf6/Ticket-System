@@ -43,6 +43,7 @@ void TicketSystem::BuyTicket(const username &_UserName, const trainID &_TrainID,
         order_num.Erase(Element<username, int>{_UserName, OrderNum});
     }
     if (now_ticket.Query(L, R) >= _TicketNum) {
+        ++OrderNum;
         int pos = order_data.size();
         order_data.Write(++pos, new_order);
         order_pos.Insert(Element<username, int>{_UserName, pos});
@@ -51,6 +52,7 @@ void TicketSystem::BuyTicket(const username &_UserName, const trainID &_TrainID,
         std::cout << 1ll * _TicketNum * new_order.Price << '\n';
     } else {
         if (Type) {
+            ++OrderNum;
             new_order.Status = PENDING;
             int pos = order_data.size();
             order_data.Write(++pos, new_order);
@@ -316,7 +318,7 @@ void TicketSystem::Run() {
                 break;
             } else throw Exception("Invalid operation");
         } catch (Exception &error) {
-            std::cout << "-1\n";
+            std::cout << error.what() << '\n';
             continue;
         }
     }
