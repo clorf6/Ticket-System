@@ -19,7 +19,7 @@ public:
     }
 
     string(const std::string &Index) {
-        Index.copy(index, size, 0);
+        strcpy(index, Index.c_str());
     }
 
     string(const char *Index) {
@@ -28,7 +28,7 @@ public:
 
     template<size_t other_size>
     string(const string<other_size> &other) {
-        memcpy(index, other.index, other_size);
+        strcpy(index, other.index);
     }
 
     string& operator = (const std::string& other) {
