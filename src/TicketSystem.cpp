@@ -60,7 +60,10 @@ void TicketSystem::BuyTicket(const username &_UserName, const trainID &_TrainID,
             Pend_Order new_pend(_TicketNum, L, R, pos);
             pend_data.Insert(Element<std::pair<trainID, int>, Pend_Order>{std::make_pair(_TrainID, delta), new_pend});
             std::cout << "queue\n";
-        } else throw Exception("Remaining ticket is not enough");
+        } else {
+            order_num.Insert(Element<username, int>{_UserName, OrderNum});
+            throw Exception("Remaining ticket is not enough");
+        }
     }
     order_num.Insert(Element<username, int>{_UserName, OrderNum});
 }
