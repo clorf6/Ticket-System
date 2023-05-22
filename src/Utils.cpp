@@ -6,18 +6,19 @@
 
 #include "Utils.h"
 
-sjtu::vector<std::string> ops;
+std::string ops[105];
+int op_num;
 
 void DivideOperation(const std::string &Op) {
     now_op.clear();
-    ops.clear();
+    op_num = 0;
     for (auto &i: Op) {
         if (i == ' ') {
-            if (!now_op.empty()) ops.push_back(now_op);
+            if (!now_op.empty()) ops[op_num++] = now_op;
             now_op.clear();
         } else now_op += i;
     }
-    if (!now_op.empty()) ops.push_back(now_op);
+    if (!now_op.empty()) ops[op_num++] = now_op;
 }
 
 void DivideStation(station* Stations, const std::string& str) {

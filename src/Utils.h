@@ -15,7 +15,8 @@
 #include "vector.h"
 #include "_time.h"
 
-extern sjtu::vector<std::string> ops;
+extern std::string ops[105];
+extern int op_num;
 static std::string now_op;
 
 void DivideOperation(const std::string &);

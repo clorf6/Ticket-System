@@ -9,8 +9,6 @@
 TicketSystem tickeysystem;
 
 int main() {
-    //freopen("5.in","r",stdin);
-    //freopen("data.out","w",stdout);
     tickeysystem.Run();
     return 0;
 }

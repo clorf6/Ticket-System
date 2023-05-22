@@ -139,7 +139,7 @@ void TicketSystem::Run() {
                 _Name.clear();
                 _MailAddr.clear();
                 _PriviLedge = 0;
-                for (int i = 2; i < ops.size(); i += 2) {
+                for (int i = 2; i < op_num; i += 2) {
                     if (ops[i] == "-c") _Cur_UserName = ops[i + 1];
                     else if (ops[i] == "-u") _UserName = ops[i + 1];
                     else if (ops[i] == "-p") _PassWord = ops[i + 1];
@@ -152,7 +152,7 @@ void TicketSystem::Run() {
             } else if (ops[1] == "login") {
                 _UserName.clear();
                 _PassWord.clear();
-                for (int i = 2; i < ops.size(); i += 2) {
+                for (int i = 2; i < op_num; i += 2) {
                     if (ops[i] == "-u") _UserName = ops[i + 1];
                     else if (ops[i] == "-p") _PassWord = ops[i + 1];
                     else throw Exception("Invalid operation");
@@ -160,7 +160,7 @@ void TicketSystem::Run() {
                 user.LoginUser(_UserName, _PassWord);
             } else if (ops[1] == "logout") {
                 _UserName.clear();
-                for (int i = 2; i < ops.size(); i += 2) {
+                for (int i = 2; i < op_num; i += 2) {
                     if (ops[i] == "-u") _UserName = ops[i + 1];
                     else throw Exception("Invalid operation");
                 }
@@ -168,7 +168,7 @@ void TicketSystem::Run() {
             } else if (ops[1] == "query_profile") {
                 _Cur_UserName.clear();
                 _UserName.clear();
-                for (int i = 2; i < ops.size(); i += 2) {
+                for (int i = 2; i < op_num; i += 2) {
                     if (ops[i] == "-c") _Cur_UserName = ops[i + 1];
                     else if (ops[i] == "-u") _UserName = ops[i + 1];
                     else throw Exception("Invalid operation");
@@ -181,7 +181,7 @@ void TicketSystem::Run() {
                 _Name.clear();
                 _MailAddr.clear();
                 _PriviLedge = 0;
-                for (int i = 2; i < ops.size(); i += 2) {
+                for (int i = 2; i < op_num; i += 2) {
                     if (ops[i] == "-c") _Cur_UserName = ops[i + 1];
                     else if (ops[i] == "-u") _UserName = ops[i + 1];
                     else if (ops[i] == "-p") _PassWord = ops[i + 1];
@@ -202,7 +202,7 @@ void TicketSystem::Run() {
                 _StartDate.clear();
                 _EndDate.clear();
                 _Type = 0;
-                for (int i = 2; i < ops.size(); i += 2) {
+                for (int i = 2; i < op_num; i += 2) {
                     if (ops[i] == "-i") _TrainID = ops[i + 1];
                     else if (ops[i] == "-n") _StationNum = std::stoi(ops[i + 1]);
                     else if (ops[i] == "-m") _SeatNum = std::stoi(ops[i + 1]);
@@ -219,14 +219,14 @@ void TicketSystem::Run() {
                                _TravelTimes, _StopoverTimes, _StartDate, _EndDate, _Type);
             } else if(ops[1] == "delete_train") {
                 _TrainID.clear();
-                for (int i = 2; i < ops.size(); i += 2) {
+                for (int i = 2; i < op_num; i += 2) {
                     if (ops[i] == "-i") _TrainID = ops[i + 1];
                     else throw Exception("Invalid operation");
                 }
                 train.DeleteTrain(_TrainID);
             } else if (ops[1] == "release_train") {
                 _TrainID.clear();
-                for (int i = 2; i < ops.size(); i += 2) {
+                for (int i = 2; i < op_num; i += 2) {
                     if (ops[i] == "-i") _TrainID = ops[i + 1];
                     else throw Exception("Invalid operation");
                 }
@@ -234,7 +234,7 @@ void TicketSystem::Run() {
             } else if (ops[1] == "query_train") {
                 _TrainID.clear();
                 _Date.clear();
-                for (int i = 2; i < ops.size(); i += 2) {
+                for (int i = 2; i < op_num; i += 2) {
                     if (ops[i] == "-i") _TrainID = ops[i + 1];
                     else if (ops[i] == "-d") GetDate(_Date, ops[i + 1]);
                     else throw Exception("Invalid operation");
@@ -245,7 +245,7 @@ void TicketSystem::Run() {
                 _EndStation.clear();
                 _Date.clear();
                 _Flag = false;
-                for (int i = 2; i < ops.size(); i += 2) {
+                for (int i = 2; i < op_num; i += 2) {
                     if (ops[i] == "-s") _StartStation = ops[i + 1];
                     else if (ops[i] == "-t") _EndStation = ops[i + 1];
                     else if (ops[i] == "-d") GetDate(_Date, ops[i + 1]);
@@ -262,7 +262,7 @@ void TicketSystem::Run() {
                 _EndStation.clear();
                 _Date.clear();
                 _Flag = false;
-                for (int i = 2; i < ops.size(); i += 2) {
+                for (int i = 2; i < op_num; i += 2) {
                     if (ops[i] == "-s") _StartStation = ops[i + 1];
                     else if (ops[i] == "-t") _EndStation = ops[i + 1];
                     else if (ops[i] == "-d") GetDate(_Date, ops[i + 1]);
@@ -282,7 +282,7 @@ void TicketSystem::Run() {
                 _EndStation.clear();
                 _TicketNum = 0;
                 _Flag = false;
-                for (int i = 2; i < ops.size(); i += 2) {
+                for (int i = 2; i < op_num; i += 2) {
                     if (ops[i] == "-u") _UserName = ops[i + 1];
                     else if (ops[i] == "-i") _TrainID = ops[i + 1];
                     else if (ops[i] == "-d") GetDate(_Date, ops[i + 1]);
@@ -300,7 +300,7 @@ void TicketSystem::Run() {
                           _StartStation, _EndStation, _Flag);
             } else if (ops[1] == "query_order") {
                 _UserName.clear();
-                for (int i = 2; i < ops.size(); i += 2) {
+                for (int i = 2; i < op_num; i += 2) {
                     if (ops[i] == "-u") _UserName = ops[i + 1];
                     else throw Exception("Invalid operation");
                 }
@@ -308,7 +308,7 @@ void TicketSystem::Run() {
             } else if (ops[1] == "refund_ticket") {
                 _UserName.clear();
                 _OrderNum = 1;
-                for (int i = 2; i < ops.size(); i += 2) {
+                for (int i = 2; i < op_num; i += 2) {
                     if (ops[i] == "-u") _UserName = ops[i + 1];
                     else if (ops[i] == "-n") _OrderNum = std::stoi(ops[i + 1]);
                     else throw Exception("Invalid operation");
