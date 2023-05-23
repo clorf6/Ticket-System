@@ -93,7 +93,6 @@ class TicketSystem {
 public:
     UserSystem user;
     TrainSystem train;
-    BPlusTree<username, int> order_num;
     BPlusTree<username, int> order_pos;
     FileSystem<Order> order_data;
     BPlusTree<std::pair<trainID, int>, Pend_Order> pend_data;

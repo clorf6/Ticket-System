@@ -9,7 +9,7 @@
 
 Order now_order, nex_order;
 
-TicketSystem::TicketSystem(): user(), train(), order_num("order_num"), order_pos("order_pos"),
+TicketSystem::TicketSystem(): user(), train(), order_pos("order_pos"),
                               order_data("order_data"), pend_data("pend_data") {}
 
 void TicketSystem::BuyTicket(const username &_UserName, const trainID &_TrainID, const date &Date, const int &_TicketNum,
@@ -36,14 +36,7 @@ void TicketSystem::BuyTicket(const username &_UserName, const trainID &_TrainID,
     Order new_order(_UserName, _TrainID, _StartStation, _EndStation,
                     nex_time, now_time, now_train.Prices[R] - now_train.Prices[L],
                     _TicketNum, delta, L, R);
-    order_num.Find(_UserName);
-    int OrderNum = 0;
-    if (!order_num.ans.empty()) {
-        OrderNum = order_num.ans[0];
-        order_num.Erase(Element<username, int>{_UserName, OrderNum});
-    }
     if (now_ticket.Query(L, R) >= _TicketNum) {
-        ++OrderNum;
         int pos = order_data.size();
         order_data.Write(++pos, new_order);
         order_pos.Insert(Element<username, int>{_UserName, pos});
@@ -52,7 +45,6 @@ void TicketSystem::BuyTicket(const username &_UserName, const trainID &_TrainID,
         std::cout << 1ll * _TicketNum * new_order.Price << '\n';
     } else {
         if (Type) {
-            ++OrderNum;
             new_order.Status = PENDING;
             int pos = order_data.size();
             order_data.Write(++pos, new_order);
@@ -60,12 +52,8 @@ void TicketSystem::BuyTicket(const username &_UserName, const trainID &_TrainID,
             Pend_Order new_pend(_TicketNum, L, R, pos);
             pend_data.Insert(Element<std::pair<trainID, int>, Pend_Order>{std::make_pair(_TrainID, delta), new_pend});
             std::cout << "queue\n";
-        } else {
-            order_num.Insert(Element<username, int>{_UserName, OrderNum});
-            throw Exception("Remaining ticket is not enough");
-        }
+        } else throw Exception("Remaining ticket is not enough");
     }
-    order_num.Insert(Element<username, int>{_UserName, OrderNum});
 }
 
 void TicketSystem::QueryOrder(const username &_UserName) {
@@ -87,10 +75,9 @@ void TicketSystem::QueryOrder(const username &_UserName) {
 void TicketSystem::RefundTicket(const username &_UserName, const int &n) {
     if (!user.is_login.find(_UserName)) throw Exception("User is not logged in or does not exist");
     int OrderNum = 0;
-    order_num.Find(_UserName);
-    if (!order_num.ans.empty()) OrderNum = order_num.ans[0];
-    if (OrderNum < n) throw Exception("Order is not found");
     order_pos.Find(_UserName);
+    if (!order_pos.ans.empty()) OrderNum = order_pos.ans.size();
+    if (OrderNum < n) throw Exception("Order is not found");
     order_data.Read(order_pos.ans[OrderNum - n], now_order);
     if (now_order.Status == REFUNDED) throw Exception("Order is already refunded");
     if (now_order.Status == SUCCESS) {
@@ -120,7 +107,6 @@ void TicketSystem::RefundTicket(const username &_UserName, const int &n) {
 void TicketSystem::Clean() {
     user.Clear();
     train.Clear();
-    order_num.clear();
     order_pos.clear();
     order_data.clear();
     pend_data.clear();
